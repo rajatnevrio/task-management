@@ -1,26 +1,41 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useAuth } from "../../contexts/AuthContext";
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const { currentUser } = useAuth();
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const [password, setPassword] = useState("");
+  const { login } = useAuth();
+  const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState<boolean>(false);
+  useEffect(() => {
+    if (currentUser) {
+      navigate("/");
+    }
+  }, [currentUser, navigate]);
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check the credentials
-    if (email === "user@user.com" && password === "123456") {
-      // Display success toast
-      toast.success("Sign in successful!");
-      // Redirect to /dashboard
-      navigate("/dashboard");
-    } else {
-      // Display error message
-      setErrorMessage("Invalid email or password");
+    try {
+      setErrorMessage("");
+      setLoading(true);
+      if (email && password) {
+        await login(email, password);
+        toast.success("Logged in successfully")
+        navigate("/")
+        
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to login");
+      setErrorMessage("Failed to login");
     }
+
+    setLoading(false);
   };
 
   // Clear error message when input changes
@@ -122,13 +137,25 @@ const SignIn: React.FC = () => {
                     <div>
                       <button
                         type="submit"
-                        className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                        disabled={loading}
+                        className={`flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm ${
+                          loading
+                            ? "opacity-50 cursor-not-allowed"
+                            : "hover:bg-indigo-500"
+                        } focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600`}
                       >
-                        Sign in
+                        {loading ? "Signing in..." : "Sign in"}
                       </button>
                     </div>
                   </form>
                 </div>
+                <p className="p-4 flex w-full justify-center">
+                  Need an account?{" "}
+                  <Link to="/signup" className="text-blue-500 px-3 ">
+                    {" "}
+                    Sign Up
+                  </Link>
+                </p>
               </div>
             </div>
           </div>
