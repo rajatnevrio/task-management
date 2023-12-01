@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import SignUpPage from './pages/SignUpPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import DashboardPage from './pages/DashboardPage';
+import ForgetPasswordPage from './pages/ForgetPasswordPage';
 const App: React.FC = () => {
 
   return (
@@ -28,6 +29,7 @@ const App: React.FC = () => {
       <Routes>
         
       <Route path="/" element={<DashboardPage />} />
+      <Route path="/forgot-password" element={<ForgetPasswordPage />} />
 
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
