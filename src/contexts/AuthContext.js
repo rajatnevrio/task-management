@@ -54,7 +54,6 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
-    console.log("first121");
 
     return signOut(auth);
   }

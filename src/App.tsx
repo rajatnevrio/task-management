@@ -7,6 +7,7 @@ import SignUpPage from './pages/SignUpPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import DashboardPage from './pages/DashboardPage';
 import ForgetPasswordPage from './pages/ForgetPasswordPage';
+import ProfilePage from './pages/ProfilePage';
 const App: React.FC = () => {
 
   return (
@@ -33,7 +34,7 @@ const App: React.FC = () => {
 
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
-
+        <Route path="/Profile" element={<ProfilePage />} />
         {/* <Route path="/dashboard" element={<DashboardPage />} /> */}
       </Routes>
     </AuthProvider>
