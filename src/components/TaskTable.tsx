@@ -1,6 +1,9 @@
 // TaskTable.tsx
 import React from "react";
 import { useTable, Column } from "react-table";
+import { TrashIcon } from "@heroicons/react/24/outline";
+import { collection, doc, deleteDoc } from "firebase/firestore";
+import { db } from "../firebase/firebase";
 interface Task {
   [key: string]: string | number; // Adjust the type according to your task structure
 }
@@ -10,7 +13,6 @@ interface TaskTableProps {
 }
 
 const TaskTable: React.FC<TaskTableProps> = ({ taskArray }) => {
-  console.log("first980", taskArray);
   const columns: Column<Task>[] = React.useMemo(
     () =>
       taskArray.length > 0
@@ -21,6 +23,20 @@ const TaskTable: React.FC<TaskTableProps> = ({ taskArray }) => {
         : [],
     [taskArray]
   );
+  const handleDelete = async (taskId: any) => {
+    try {
+      // Form a reference to the document using the unique ID
+      const taskDocRef = doc(collection(db, "tasks"), taskId);
+      
+      // Delete the document
+      await deleteDoc(taskDocRef);
+
+      // Optionally, you can update the UI or show a success message
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      // Handle error, show error message, etc.
+    }
+  };
   const tableRows = taskArray.map((element) => {
     const timestamp = element.createdAt;
     const date = new Date(Number(timestamp) * 1000);
@@ -89,6 +105,14 @@ const TaskTable: React.FC<TaskTableProps> = ({ taskArray }) => {
         </td>
         <td className="px-4 py-4 whitespace-nowrap">{formattedDate}</td>
         <td className="px-4 py-4 whitespace-nowrap">{element.instructions}</td>
+        <td className="px-4 py-4 whitespace-nowrap text-sm">
+          {" "}
+          <TrashIcon
+            style={{ height: "30px", width: "30px", cursor: "pointer" }}
+            className="hover:bg-red-500 rounded-full p-1"
+            onClick={() => handleDelete(element.docId)}
+          />
+        </td>
       </tr>
     );
   });
@@ -106,14 +130,14 @@ const TaskTable: React.FC<TaskTableProps> = ({ taskArray }) => {
     "Deadline",
     "Created on",
     "Instructions",
+    "actions",
   ];
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
     useTable({ columns, data });
-  console.log("firstad", taskArray);
   return (
     <table
       {...getTableProps()}
-      className="-my-2 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8"
+      className="-my-2 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8 overflowY-auto"
     >
       <thead>
         <tr className="border p-2 bg-gray-200">

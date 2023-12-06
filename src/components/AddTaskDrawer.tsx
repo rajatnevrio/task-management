@@ -74,7 +74,9 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       });
   
       console.log("Document written with ID:", docRef.id);
-  
+      await updateDoc(docRef, {
+        docId: docRef.id,
+      });
       // Handle file uploads to Firebase Storage
       if (files && files.length > 0) {
         const fileUploadPromises = files.map(async (file: File) => {
