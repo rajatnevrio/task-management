@@ -26,7 +26,6 @@ export function AuthProvider({ children }) {
       .then((userCredential) => {
         // User has been successfully created
         const user = userCredential.user;
-        // console.log("firstwe31", user);
         // Add roles for the user
         addRoles(email);
 
@@ -93,7 +92,6 @@ export function AuthProvider({ children }) {
       // Assuming there's only one document for a unique email
       const doc = querySnapshot.docs[0];
       const userRole = doc.data();
-      // console.log("User Role:", userRole)
       return userRole;
     } catch (error) {
       console.error("Error getting user role:", error);

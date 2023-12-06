@@ -1,8 +1,8 @@
 // TaskTable.tsx
-import React from "react";
+import React, { Dispatch, SetStateAction } from "react";
 import { useTable, Column } from "react-table";
-import { TrashIcon } from "@heroicons/react/24/outline";
-import { collection, doc, deleteDoc } from "firebase/firestore";
+import { TrashIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
+import { collection, doc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 interface Task {
   [key: string]: string | number; // Adjust the type according to your task structure
@@ -10,9 +10,10 @@ interface Task {
 
 interface TaskTableProps {
   taskArray: Task[];
+  setSidebarOpen: Dispatch<SetStateAction<{ isOpen: boolean; id: string }>>;
 }
 
-const TaskTable: React.FC<TaskTableProps> = ({ taskArray }) => {
+const TaskTable: React.FC<TaskTableProps> = ({ taskArray, setSidebarOpen }) => {
   const columns: Column<Task>[] = React.useMemo(
     () =>
       taskArray.length > 0
@@ -23,11 +24,11 @@ const TaskTable: React.FC<TaskTableProps> = ({ taskArray }) => {
         : [],
     [taskArray]
   );
+
   const handleDelete = async (taskId: any) => {
     try {
       // Form a reference to the document using the unique ID
       const taskDocRef = doc(collection(db, "tasks"), taskId);
-      
       // Delete the document
       await deleteDoc(taskDocRef);
 
@@ -105,12 +106,23 @@ const TaskTable: React.FC<TaskTableProps> = ({ taskArray }) => {
         </td>
         <td className="px-4 py-4 whitespace-nowrap">{formattedDate}</td>
         <td className="px-4 py-4 whitespace-nowrap">{element.instructions}</td>
-        <td className="px-4 py-4 whitespace-nowrap text-sm">
+        <td className="px-4 py-4 whitespace-nowrap text-sm flex">
           {" "}
           <TrashIcon
             style={{ height: "30px", width: "30px", cursor: "pointer" }}
             className="hover:bg-red-500 rounded-full p-1"
             onClick={() => handleDelete(element.docId)}
+          />
+          <PencilSquareIcon
+            style={{ height: "30px", width: "30px", cursor: "pointer" }}
+            className="hover:bg-green-500 rounded-full p-1"
+            onClick={() =>
+              setSidebarOpen((prevSidebarState) => ({
+                ...prevSidebarState,
+                isOpen: true,
+                id: element.docId.toString(), // Ensure id is treated as a string
+              }))
+            }
           />
         </td>
       </tr>

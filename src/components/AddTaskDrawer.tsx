@@ -1,24 +1,41 @@
-import React, { ChangeEvent, Fragment, useState } from "react";
+import React, {
+  ChangeEvent,
+  Dispatch,
+  Fragment,
+  SetStateAction,
+  useEffect,
+  useState,
+} from "react";
 import {
   DocumentReference,
   addDoc,
   arrayUnion,
   collection,
+  doc,
+  getDoc,
   serverTimestamp,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
 import { Dialog, Transition } from "@headlessui/react";
 import { CheckIcon } from "@heroicons/react/24/outline";
-import { DocumentData } from '@firebase/firestore-types';
-
+import { DocumentData } from "@firebase/firestore-types";
 
 import { db } from "../firebase/firebase";
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
 import { toast } from "react-toastify";
+interface SidebarState {
+  isOpen: boolean;
+  id: string;
+}
 interface AddTaskDrawerProps {
-  sidebarOpen: boolean;
-  setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  sidebarOpen: SidebarState;
+  setSidebarOpen: Dispatch<SetStateAction<{ isOpen: boolean; id: string }>>;
 }
 const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   sidebarOpen,
@@ -37,7 +54,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     instructions: "",
     jobStatus: "unassigned",
   });
-
+console.log('firstdqwqw',sidebarOpen)
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -47,7 +64,36 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       [name]: value,
     }));
   };
+  const getDocById = async (docId: string) => {
+    try {
+      // Form a reference to the document using the unique ID
+      const docRef = doc(collection(db, "tasks"), docId);
 
+      // Get the document
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const docData = docSnap.data();
+        console.log('firstdoc',docData)
+        setFormData((prevData) => ({
+          ...prevData,
+          ...docData,
+        }));
+        return docData;
+      } else {
+        console.log(
+          `Document with ID ${docId} does not exist in collection ${"tasks"}`
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        `Error getting document from collection ${"tasks"}:`,
+        error
+      );
+      throw error; // Re-throw the error for handling in the calling code
+    }
+  };
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     setFormData((prevData: any) => ({
@@ -57,23 +103,24 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   };
   const storage = getStorage();
 
+  useEffect(()=>{
+   if(sidebarOpen.id.length>1){ getDocById(sidebarOpen.id)}
+  },[])
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form data submitted:", formData);
-  
+
     let docRef: DocumentReference<DocumentData>; // Explicitly define the type
-  
+
     try {
       // Exclude the 'files' field from the form data
       const { files, ...formDataWithoutFiles } = formData;
-  
+
       // Add the form data (excluding 'files') to the "tasks" collection
       docRef = await addDoc(collection(db, "tasks"), {
         ...formDataWithoutFiles,
         createdAt: serverTimestamp(),
       });
-  
-      console.log("Document written with ID:", docRef.id);
+
       await updateDoc(docRef, {
         docId: docRef.id,
       });
@@ -82,13 +129,13 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         const fileUploadPromises = files.map(async (file: File) => {
           // Create a unique filename using the document ID and the original filename
           const filename = `${docRef.id}_${file.name}`;
-  
+
           // Create a storage reference with the filename
           const storageRef = ref(storage, `files/${filename}`);
-  
+
           // Upload the file to Firebase Storage using resumable upload
           const uploadTask = uploadBytesResumable(storageRef, file);
-  
+
           // Monitor the upload progress and handle completion
           uploadTask.on(
             "state_changed",
@@ -112,7 +159,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
               // Handle successful upload completion
               const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
               console.log("File available at", downloadURL);
-  
+
               // Update the Firestore document with the file download URL
               await updateDoc(docRef, {
                 files: arrayUnion(downloadURL),
@@ -120,15 +167,19 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
             }
           );
         });
-  
+
         // Wait for all file uploads to complete
         await Promise.all(fileUploadPromises);
       }
-  
+
       // Close the modal
-      setSidebarOpen(false);
-    } catch (error:any) {
-      toast.error(error)
+      setSidebarOpen((prevSidebarState) => ({
+        ...prevSidebarState,
+        isOpen: !prevSidebarState.isOpen,
+        id:""
+      }));
+    } catch (error: any) {
+      toast.error(error);
       console.error("Error adding document:", error);
     }
   };
@@ -141,8 +192,15 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     }));
   };
   return (
-    <Transition.Root show={sidebarOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={setSidebarOpen}>
+    <Transition.Root show={sidebarOpen.isOpen} as={Fragment}>
+      <Dialog
+        as="div"
+        className="relative z-10"
+        onClose={() => setSidebarOpen((prevSidebarState) => ({
+          ...prevSidebarState,
+          isOpen: false,
+        }))}
+      >
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -334,7 +392,14 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                   <button
                     type="button"
                     className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                    onClick={() => setSidebarOpen(false)}
+                    onClick={(event) => {
+                      // Handle the event if needed
+                      setSidebarOpen((prevSidebarState) => ({
+                        ...prevSidebarState,
+                        isOpen: !prevSidebarState.isOpen,
+                        id : ""
+                      }));
+                    }}
                   >
                     Cancel
                   </button>

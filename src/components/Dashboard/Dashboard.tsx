@@ -6,13 +6,19 @@ import AddTaskDrawer from "../AddTaskDrawer";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
 import TaskTable from "../TaskTable";
+interface SidebarState {
+  isOpen: boolean;
+  id: string;
+}
 
 const Dashboard = () => {
   const { currentUser, logout } = useAuth();
   const [taskArray, setTaskArray] = useState<{ id: string }[]>([]);
-    const [sidebarOpen, setSidebarOpen] = useState <boolean>(false)
+  const [sidebarOpen, setSidebarOpen] = useState<SidebarState>({
+    isOpen: false,
+    id: "",
+  });
   const navigate = useNavigate();
-  console.log("first", currentUser);
 
 
   const getTaskData = async () => {
@@ -45,7 +51,7 @@ const Dashboard = () => {
       navigate("/signin");
     }
     getTaskData()
-  }, [currentUser, navigate,sidebarOpen]);
+  }, [currentUser, navigate,sidebarOpen.isOpen]);
 
   if (!currentUser) {
     // Render loading spinner or message while redirecting
@@ -63,7 +69,11 @@ const Dashboard = () => {
         <div className="flex justify-end mx-14">
          <button
             onClick={() => {
-            setSidebarOpen(!sidebarOpen)
+              setSidebarOpen((prevSidebarState) => ({
+                ...prevSidebarState,
+                isOpen: !prevSidebarState.isOpen,
+                id: "",
+              }))
             }}
           className="h-12 m-4 p-2 rounded-lg w-fit bg-blue-500"
         >
@@ -71,9 +81,9 @@ const Dashboard = () => {
         </button>
         </div>
         <div className="">
-      <TaskTable taskArray={taskArray} />
+      <TaskTable taskArray={taskArray} setSidebarOpen={setSidebarOpen} />
       </div>
-        {sidebarOpen && <AddTaskDrawer sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />}
+        {sidebarOpen.isOpen && <AddTaskDrawer sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />}
       </div>
     </div>
 
