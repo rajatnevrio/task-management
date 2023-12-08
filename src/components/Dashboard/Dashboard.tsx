@@ -65,18 +65,16 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="flex">
-      {/* <div className="w-[15%]">
-        <SideBar />
-      </div> */}
+    <div className="flex w-full">
+  
 
       {loading ? (
         <div className="w-full justify-center items-center flex">
           <LoaderComp />
         </div>
       ) : (
-        <div className="mx-8  flex flex-col">
-          <div className="flex w-full justify-end mx-14">
+        <div className="mx-8  w-full flex flex-col">
+          <div className="flex w-full justify-start">
             {currentUser.role === "admin" && (
               <button
                 onClick={() => {
@@ -86,7 +84,7 @@ const Dashboard = () => {
                     id: "",
                   }));
                 }}
-                className="h-12 m-4 p-2 rounded-lg w-fit bg-blue-500"
+                className="h-12 my-4 mr-16 p-2 rounded-lg w-fit bg-blue-500"
               >
                 Add Task
               </button>
