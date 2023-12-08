@@ -139,7 +139,8 @@ export function AuthProvider({ children }) {
     login,
     logout,
     resetPassword,
-    getUserRoles
+    getUserRoles,
+    getUserRoleByEmail
   };
 
   return (

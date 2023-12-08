@@ -66,9 +66,9 @@ const Dashboard = () => {
 
   return (
     <div className="flex">
-      <div className="w-[15%]">
+      {/* <div className="w-[15%]">
         <SideBar />
-      </div>
+      </div> */}
 
       {loading ? (
         <div className="w-full justify-center items-center flex">
