@@ -26,7 +26,7 @@ const Dashboard = () => {
   };
   const getTaskData = async () => {
     const taskCollection = collection(db, "tasks");
-    setLoading(true)
+    setLoading(true);
     try {
       const querySnapshot = await getDocs(taskCollection);
 
@@ -45,11 +45,10 @@ const Dashboard = () => {
       });
 
       setTaskArray(tasksArray);
-      setLoading(false)
+      setLoading(false);
     } catch (error) {
       console.error("Error getting tasks:", error);
-      setLoading(false)
-
+      setLoading(false);
     }
   };
   useEffect(() => {
@@ -94,7 +93,11 @@ const Dashboard = () => {
             )}
           </div>
           <div className="">
-            <TaskTable taskArray={taskArray} setSidebarOpen={setSidebarOpen} />
+            <TaskTable
+              taskArray={taskArray}
+              setSidebarOpen={setSidebarOpen}
+              updateTaskData={updateTaskData}
+            />
           </div>
           {sidebarOpen.isOpen && (
             <AddTaskDrawer
