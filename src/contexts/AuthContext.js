@@ -20,14 +20,14 @@ export function AuthProvider({ children }) {
 
   const [loading, setLoading] = useState(true);
 
-  function signUp(email, password) {
+  function signUp(email, password, name) {
     // Create a new user with email and password
     return createUserWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         // User has been successfully created
         const user = userCredential.user;
         // Add roles for the user
-        addRoles(email);
+        addRoles(email, name);
 
         return user;
       })
@@ -38,9 +38,10 @@ export function AuthProvider({ children }) {
       });
   }
 
-  async function addRoles(email) {
+  async function addRoles(email, name) {
     try {
       const docRef = await addDoc(collection(db, "userRoles"), {
+        name: name,
         email: email,
         role: "employee",
       });
@@ -53,7 +54,6 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
-
     return signOut(auth);
   }
 
@@ -62,17 +62,28 @@ export function AuthProvider({ children }) {
   }
   async function getUserRoles() {
     const userRolesCollection = collection(db, "userRoles");
-
+  
     try {
-      const querySnapshot = await getDocs(userRolesCollection);
-
+      // Create a query with a where condition
+      const querySnapshot = await getDocs(
+        query(userRolesCollection, where("role", "==", "employee"))
+      );
+  
+      const userRolesArray = [];
+  
       querySnapshot.forEach((doc) => {
         // Access data for each document
         const data = doc.data();
-        console.log("User Role:", data);
+  
+        // Add the document data to the array
+        userRolesArray.push(data);
       });
+  
+      return userRolesArray;
     } catch (error) {
       console.error("Error getting user roles:", error);
+      // Handle the error or throw it again based on your use case
+      throw error;
     }
   }
 
@@ -128,6 +139,7 @@ export function AuthProvider({ children }) {
     login,
     logout,
     resetPassword,
+    getUserRoles
   };
 
   return (

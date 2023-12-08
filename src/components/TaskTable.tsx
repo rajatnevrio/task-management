@@ -1,9 +1,10 @@
 // TaskTable.tsx
-import React, { Dispatch, SetStateAction } from "react";
+import React, { Dispatch, SetStateAction, useEffect } from "react";
 import { useTable, Column } from "react-table";
 import { TrashIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 import { collection, doc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import { useAuth } from "../contexts/AuthContext";
 interface Task {
   [key: string]: string | number; // Adjust the type according to your task structure
 }
@@ -24,7 +25,7 @@ const TaskTable: React.FC<TaskTableProps> = ({ taskArray, setSidebarOpen }) => {
         : [],
     [taskArray]
   );
-
+  const { currentUser, logout, getUserRoles } = useAuth();
   const handleDelete = async (taskId: any) => {
     try {
       // Form a reference to the document using the unique ID
@@ -32,12 +33,13 @@ const TaskTable: React.FC<TaskTableProps> = ({ taskArray, setSidebarOpen }) => {
       // Delete the document
       await deleteDoc(taskDocRef);
 
-      // Optionally, you can update the UI or show a success message
+      // Optional`ly, you can update the UI or show a success message
     } catch (error) {
       console.error("Error deleting document:", error);
       // Handle error, show error message, etc.
     }
   };
+
   const tableRows = taskArray.map((element) => {
     const timestamp = element.createdAt;
     const date = new Date(Number(timestamp) * 1000);
@@ -54,7 +56,7 @@ const TaskTable: React.FC<TaskTableProps> = ({ taskArray, setSidebarOpen }) => {
     const formatDownloadLink = (link: string) => {
       // Display only the first 30 characters of the link
       const shortenedLink =
-        link.length > 25 ? link.substring(0, 25) + "..." : link;
+        link.length > 25 ? link.substring(0, 20) + "..." : link;
       return (
         <a href={link} target="_blank" rel="noopener noreferrer">
           {shortenedLink}
@@ -79,40 +81,41 @@ const TaskTable: React.FC<TaskTableProps> = ({ taskArray, setSidebarOpen }) => {
       };
       return date.toLocaleString("en-US", options);
     };
-
     return (
-      <tr className="items">
-        <td className="px-4 py-4 whitespace-nowrap">{element.title}</td>
-        <td className="px-4 py-4 whitespace-nowrap">{element.typeOfWork}</td>
-        <td className="px-4 py-4 whitespace-nowrap">
+      <tr className="items text-md text-center">
+        <td className="px-3 py-4 whitespace-nowrap border-r">{element.title}</td>
+        <td className="px-3 py-4 whitespace-nowrap border-r">{element.typeOfWork}</td>
+        <td className="px-3 py-4 whitespace-nowrap border-r">
           {element.employeeAssigned}
         </td>
-        <td className="px-4 py-4 whitespace-nowrap">{element.pp}</td>
-        <td className="px-4 py-4 whitespace-nowrap">{element.jobStatus}</td>
-        <td className="px-4 py-4 whitespace-nowrap">
+        <td className="px-3 py-4 whitespace-nowrap border-r">{element.pp}</td>
+        <td className="px-3 py-4 whitespace-nowrap border-r">{element.jobStatus}</td>
+        <td className="px-3 py-4 whitespace-nowrap border-r">
           {element.numberOfSlides}
         </td>
-        <td className="px-4 py-4 whitespace-nowrap">
+        <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDownloadLink(String(element.files))}
         </td>
-        <td className="px-4 py-4 whitespace-nowrap">
+        <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDateTime(element.startDate)}
         </td>
-        <td className="px-4 py-4 whitespace-nowrap">
+        <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDateTime(element.endDate)}
         </td>
-        <td className="px-4 py-4 whitespace-nowrap">
+        <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDateTime(element.deadline)}
         </td>
-        <td className="px-4 py-4 whitespace-nowrap">{formattedDate}</td>
-        <td className="px-4 py-4 whitespace-nowrap">{element.instructions}</td>
-        <td className="px-4 py-4 whitespace-nowrap text-sm flex">
+        <td className="px-3 py-4 whitespace-nowrap border-r">{formattedDate}</td>
+        {/* <td className="px-3 py-4 whitespace-nowrap border-r">{element.instructions}</td> */}
+        <td className="px-3 py-4 whitespace-nowrap border-r text-sm flex">
           {" "}
-          <TrashIcon
-            style={{ height: "30px", width: "30px", cursor: "pointer" }}
-            className="hover:bg-red-500 rounded-full p-1"
-            onClick={() => handleDelete(element.docId)}
-          />
+          {currentUser.role === "admin" && (
+            <TrashIcon
+              style={{ height: "30px", width: "30px", cursor: "pointer" }}
+              className="hover:bg-red-500 rounded-full p-1"
+              onClick={() => handleDelete(element.docId)}
+            />
+          )}
           <PencilSquareIcon
             style={{ height: "30px", width: "30px", cursor: "pointer" }}
             className="hover:bg-green-500 rounded-full p-1"
@@ -120,7 +123,7 @@ const TaskTable: React.FC<TaskTableProps> = ({ taskArray, setSidebarOpen }) => {
               setSidebarOpen((prevSidebarState) => ({
                 ...prevSidebarState,
                 isOpen: true,
-                id: element.docId.toString(), // Ensure id is treated as a string
+                id: element?.docId?.toString(), // Ensure id is treated as a string
               }))
             }
           />
@@ -131,17 +134,17 @@ const TaskTable: React.FC<TaskTableProps> = ({ taskArray, setSidebarOpen }) => {
   const data: Task[] = React.useMemo(() => taskArray, [taskArray]);
   const tableHeaders: string[] = [
     "Title",
-    "Type of Work",
-    "Employee Assigned",
+    "Type",
+    "Assignee",
     "PP",
     "Job Status",
-    "No. Of Slides",
+    "Slides",
     "Files",
     "Start Date",
-    "End Date",
+    "Due Date",
     "Deadline",
     "Created on",
-    "Instructions",
+    // "Instructions",
     "actions",
   ];
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
@@ -149,14 +152,14 @@ const TaskTable: React.FC<TaskTableProps> = ({ taskArray, setSidebarOpen }) => {
   return (
     <table
       {...getTableProps()}
-      className="-my-2 overflow-x-auto -mx-4 sm:-mx-6 lg:-mx-8 overflowY-auto"
+      className="-my-2 overflow-x-auto border  mx-4 sm:m-8 lg:mx-1 overflowY-auto"
     >
       <thead>
-        <tr className="border p-2 bg-gray-200">
+        <tr className="border  rounded p-2 bg-gray-200">
           {tableHeaders.map((header, index) => (
             <th
               key={index}
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-2 py-2 border-r-2 border-gray-300 text-center text-md font-medium text-gray-500 uppercase tracking-wider"
             >
               {header}
             </th>

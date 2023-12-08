@@ -7,6 +7,7 @@ function SignUp() {
   const { signUp, currentUser } = useAuth();
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
   const confirmPasswordRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -24,14 +25,19 @@ function SignUp() {
       setError("");
       setLoading(true);
       if (emailRef.current && passwordRef.current) {
-        await signUp(emailRef.current.value, passwordRef.current.value);
+        await signUp(emailRef.current.value, passwordRef.current.value,nameRef.current?.value);
         toast.success("user created successfully");
         navigate("/signin");
       }
     } catch (error) {
       console.log(error);
-      toast.error("Failed to create an account");
-      setError("Failed to create an account");
+      if(error && (error as any).code === "auth/email-already-in-use"){
+    toast.error("Email is already in use. Please use a different email.");
+    setError("Email is already in use. Please use a different email.");
+  } else {
+    toast.error("Failed to create an account");
+    setError("Failed to create an account");
+  }
     }
 
     setLoading(false);
@@ -48,6 +54,25 @@ function SignUp() {
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
         <div className="bg-white px-6 py-12 shadow sm:rounded-lg sm:px-12">
           <form className="space-y-6" onSubmit={handleSubmit}>
+          <div>
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium leading-6 text-gray-900"
+              >
+                Name
+              </label>
+              <div className="mt-2">
+                <input
+                  id="name"
+                  name="name"
+                  type="name"
+                  autoComplete="name"
+                  required
+                  ref={nameRef}
+                  className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                />
+              </div>
+            </div>
             <div>
               <label
                 htmlFor="email"

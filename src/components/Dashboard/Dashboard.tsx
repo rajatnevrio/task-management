@@ -6,6 +6,7 @@ import AddTaskDrawer from "../AddTaskDrawer";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
 import TaskTable from "../TaskTable";
+import LoaderComp from "../Loader";
 interface SidebarState {
   isOpen: boolean;
   id: string;
@@ -14,24 +15,27 @@ interface SidebarState {
 const Dashboard = () => {
   const { currentUser, logout } = useAuth();
   const [taskArray, setTaskArray] = useState<{ id: string }[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<SidebarState>({
     isOpen: false,
     id: "",
   });
   const navigate = useNavigate();
-
-
+  const updateTaskData = () => {
+    getTaskData();
+  };
   const getTaskData = async () => {
     const taskCollection = collection(db, "tasks");
+    setLoading(true)
     try {
       const querySnapshot = await getDocs(taskCollection);
-  
+
       // Convert the query snapshot to an array of objects
       const tasksArray = querySnapshot.docs.map((doc) => {
         const data = doc.data();
         // Convert createdAt to a string or another suitable representation
         const createdAtString = `${data.createdAt.seconds}.${data.createdAt.nanoseconds}`;
-        
+
         // Return the modified data
         return {
           id: doc.id,
@@ -39,10 +43,13 @@ const Dashboard = () => {
           createdAt: createdAtString,
         };
       });
-  
+
       setTaskArray(tasksArray);
+      setLoading(false)
     } catch (error) {
       console.error("Error getting tasks:", error);
+      setLoading(false)
+
     }
   };
   useEffect(() => {
@@ -50,14 +57,13 @@ const Dashboard = () => {
       // Redirect to sign-in if user is not logged in
       navigate("/signin");
     }
-    getTaskData()
-  }, [currentUser, navigate,sidebarOpen.isOpen]);
+    getTaskData();
+  }, [currentUser, navigate]);
 
   if (!currentUser) {
     // Render loading spinner or message while redirecting
-    return <div>Loading...</div>;
+    return <LoaderComp />;
   }
-
 
   return (
     <div className="flex">
@@ -65,30 +71,41 @@ const Dashboard = () => {
         <SideBar />
       </div>
 
-      <div className="mx-8 w-full flex flex-col">
-        <div className="flex justify-end mx-14">
-         <button
-            onClick={() => {
-              setSidebarOpen((prevSidebarState) => ({
-                ...prevSidebarState,
-                isOpen: !prevSidebarState.isOpen,
-                id: "",
-              }))
-            }}
-          className="h-12 m-4 p-2 rounded-lg w-fit bg-blue-500"
-        >
-          Add Task
-        </button>
+      {loading ? (
+        <div className="w-full justify-center items-center flex">
+          <LoaderComp />
         </div>
-        <div className="">
-      <TaskTable taskArray={taskArray} setSidebarOpen={setSidebarOpen} />
-      </div>
-        {sidebarOpen.isOpen && <AddTaskDrawer sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />}
-      </div>
+      ) : (
+        <div className="mx-8  flex flex-col">
+          <div className="flex w-full justify-end mx-14">
+            {currentUser.role === "admin" && (
+              <button
+                onClick={() => {
+                  setSidebarOpen((prevSidebarState) => ({
+                    ...prevSidebarState,
+                    isOpen: !prevSidebarState.isOpen,
+                    id: "",
+                  }));
+                }}
+                className="h-12 m-4 p-2 rounded-lg w-fit bg-blue-500"
+              >
+                Add Task
+              </button>
+            )}
+          </div>
+          <div className="">
+            <TaskTable taskArray={taskArray} setSidebarOpen={setSidebarOpen} />
+          </div>
+          {sidebarOpen.isOpen && (
+            <AddTaskDrawer
+              sidebarOpen={sidebarOpen}
+              setSidebarOpen={setSidebarOpen}
+              updateTaskData={updateTaskData}
+            />
+          )}
+        </div>
+      )}
     </div>
-
-   
-
   );
 };
 
