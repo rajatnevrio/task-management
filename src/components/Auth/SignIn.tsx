@@ -25,14 +25,20 @@ const SignIn: React.FC = () => {
       setLoading(true);
       if (email && password) {
         await login(email, password);
-        toast.success("Logged in successfully")
-        navigate("/")
-        
+        toast.success("Logged in successfully");
+      if(currentUser) { navigate("/")};
       }
     } catch (error) {
       console.log(error);
-      toast.error("Failed to login");
-      setErrorMessage("Failed to login");
+      if (error && (error as any).code === "auth/invalid-credential") {
+        toast.error("Invalid Credentials");
+        setErrorMessage(
+          "Invalid Credentials"
+        );
+      } else {
+        toast.error("Failed to login");
+        setErrorMessage("Failed to login");
+      }
     }
 
     setLoading(false);
@@ -125,7 +131,8 @@ const SignIn: React.FC = () => {
                       </div>
 
                       <div className="text-sm leading-6">
-                        <Link to="/forgot-password"
+                        <Link
+                          to="/forgot-password"
                           className="font-semibold text-indigo-600 hover:text-indigo-500"
                         >
                           Forgot password?

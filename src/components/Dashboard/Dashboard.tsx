@@ -3,39 +3,64 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import SideBar from "../SideBar";
 import AddTaskDrawer from "../AddTaskDrawer";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
 import TaskTable from "../TaskTable";
 import LoaderComp from "../Loader";
+import { UserDetails } from "../../types";
 interface SidebarState {
   isOpen: boolean;
   id: string;
 }
 
 const Dashboard = () => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, getUserRoleByEmail } = useAuth();
   const [taskArray, setTaskArray] = useState<{ id: string }[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<SidebarState>({
     isOpen: false,
     id: "",
   });
+  const [details, setDetails] = useState<UserDetails | undefined>();
+  const getUserDetail = async () => {
+    try {
+      const userRole = await getUserRoleByEmail(currentUser?.email);
+
+      // Log the userRole for debugging
+      console.log(userRole);
+
+      if (userRole) {
+        await setDetails({
+          name: userRole.name,
+          email: userRole.email,
+          role: userRole.role,
+        });
+        await getTaskData(userRole.name);
+      }
+    } catch (error) {
+      console.error("Error getting user detail:", error);
+    }
+  };
   const navigate = useNavigate();
   const updateTaskData = () => {
-    getTaskData();
+    getTaskData(details?.name);
   };
-  const getTaskData = async () => {
+  const getTaskData = async (name2: string | undefined) => {
     const taskCollection = collection(db, "tasks");
     setLoading(true);
     try {
-      const querySnapshot = await getDocs(taskCollection);
+      const querySnapshot =
+        currentUser.role === "admin"
+          ? await getDocs(taskCollection)
+          : await getDocs(
+              query(taskCollection, where("employeeAssigned", "==", `${name2}`))
+            );
 
       // Convert the query snapshot to an array of objects
       const tasksArray = querySnapshot.docs.map((doc) => {
         const data = doc.data();
         // Convert createdAt to a string or another suitable representation
         const createdAtString = `${data.createdAt.seconds}.${data.createdAt.nanoseconds}`;
-
         // Return the modified data
         return {
           id: doc.id,
@@ -51,23 +76,25 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
+  const getData = async () => {
+    await getUserDetail();
+    // await getTaskData();
+  };
   useEffect(() => {
+    getData();
+
     if (!currentUser) {
-      // Redirect to sign-in if user is not logged in
       navigate("/signin");
+    } else {
     }
-    getTaskData();
-  }, [currentUser, navigate]);
+  }, [currentUser]);
 
   if (!currentUser) {
-    // Render loading spinner or message while redirecting
     return <LoaderComp />;
   }
 
   return (
     <div className="flex w-full">
-  
-
       {loading ? (
         <div className="w-full justify-center items-center flex">
           <LoaderComp />
@@ -101,6 +128,7 @@ const Dashboard = () => {
             <AddTaskDrawer
               sidebarOpen={sidebarOpen}
               setSidebarOpen={setSidebarOpen}
+              userDetails={details}
               updateTaskData={updateTaskData}
             />
           )}

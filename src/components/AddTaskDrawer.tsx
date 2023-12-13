@@ -31,14 +31,17 @@ import {
 import { toast } from "react-toastify";
 import { useAuth } from "../contexts/AuthContext";
 import LoaderComp from "./Loader";
+import { UserDetails } from "../types";
 interface SidebarState {
   isOpen: boolean;
   id: string;
 }
+
 interface AddTaskDrawerProps {
   sidebarOpen: SidebarState;
   setSidebarOpen: Dispatch<SetStateAction<{ isOpen: boolean; id: string }>>;
   updateTaskData: () => void;
+  userDetails?: UserDetails;
 }
 interface rolesApi {
   email: string;
@@ -49,6 +52,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   sidebarOpen,
   setSidebarOpen,
   updateTaskData,
+  userDetails,
 }) => {
   const [formData, setFormData] = useState({
     title: "",
@@ -66,6 +70,15 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   const [list, setList] = useState<rolesApi[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const { getUserRoles } = useAuth();
+  const formattedDate = (date: any) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const isoString = `${year}-${month}-${day}T${hours}:${minutes}`;
+    return isoString;
+  };
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -74,9 +87,49 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       ...prevData,
       [name]: value,
     }));
+    if (name === "jobStatus" && value === "inprogress") {
+      const currentDate = new Date();
+      // Construct the ISO-like string
+      const endDate = new Date();
+      const ppValue = formData.pp.toString();
+      endDate.setMinutes(endDate.getMinutes() + parseInt(ppValue, 10) * 6);
+      setFormData((prevData) => ({
+        ...prevData,
+        startDate: formattedDate(currentDate),
+        endDate: formattedDate(endDate),
+      }));
+    }
+    if (
+      name === "jobStatus" &&
+      (value === "completed" || value === "handover")
+    ) {
+      const currentDate = new Date();
+
+      const endDate = new Date();
+      if (formattedDate(currentDate) < formData.endDate) {
+        console.log("first12", formData.endDate);
+
+        const ppValue = formData.pp.toString();
+        endDate.setMinutes(endDate.getMinutes() + parseInt(ppValue, 10) * 6);
+        setFormData((prevData) => ({
+          ...prevData,
+          endDate: formattedDate(currentDate),
+        }));
+      }
+    }
+    if (
+      name === "jobStatus" &&
+      (value === "unassigned" || value === "notstarted")
+    ) {
+      setFormData((prevData) => ({
+        ...prevData,
+        startDate: "",
+        endDate: "",
+      }));
+    }
   };
   const getDocById = async (docId: string) => {
-    setLoading(true)
+    setLoading(true);
     try {
       // Form a reference to the document using the unique ID
       const docRef = doc(collection(db, "tasks"), docId);
@@ -90,11 +143,11 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
           ...prevData,
           ...docData,
         }));
-    setLoading(false)
+        setLoading(false);
 
         return docData;
       } else {
-    setLoading(false)
+        setLoading(false);
         console.log(
           `Document with ID ${docId} does not exist in collection ${"tasks"}`
         );
@@ -117,17 +170,52 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       throw error;
     }
   };
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const isFieldDisabled = () => userDetails?.role === "employee";
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    setFormData((prevData: any) => ({
-      ...prevData,
-      files: files ? Array.from(files) : [],
-    }));
+    if (files && files.length > 0) {
+      const fileUploadPromises = Array.from(files).map(async (file: File) => {
+        const filename = `${file.name}`;
+        const storageRef = ref(storage, `files/${filename}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+        uploadTask.on(
+          "state_changed",
+          (snapshot) => {
+            setLoading(true);
+            const progress =
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log(`Upload is ${progress}% done`);
+            switch (snapshot.state) {
+              case "paused":
+                console.log("Upload is paused");
+                break;
+              case "running":
+                console.log("Upload is running");
+                break;
+            }
+          },
+          (error) => {
+            console.error("Error during file upload:", error);
+          },
+          async () => {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            console.log("File available at", downloadURL);
+            if (downloadURL) {
+              setLoading(false);
+              toast.success("File uploaded successfully");
+            }
+            setFormData((prevData: any) => ({
+              ...prevData,
+              files: arrayUnion(downloadURL),
+            }));
+          }
+        );
+      });
+    }
   };
   const storage = getStorage();
   const getData = async () => {
     const val = await getUserRoles();
-
     setList(val);
   };
 
@@ -141,17 +229,12 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     e.preventDefault();
     setLoading(true);
     try {
-      // Exclude the 'files' field from the form data
-      const { files, ...formDataWithoutFiles } = formData;
-
+      const { ...formDataWithoutFiles } = formData;
       if (sidebarOpen?.id?.length > 1) {
-        // If ID exists, update the existing document
         await updateDocById(sidebarOpen.id, {
           ...formDataWithoutFiles,
-          files: files ? arrayUnion(...files) : [],
         });
       } else {
-        // If ID doesn't exist, add a new document
         const docRef = await addDoc(collection(db, "tasks"), {
           ...formDataWithoutFiles,
           createdAt: serverTimestamp(),
@@ -159,56 +242,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         await updateDoc(docRef, {
           docId: docRef.id,
         });
-
-        // Handle file uploads to Firebase Storage
-        if (files && files.length > 0) {
-          const fileUploadPromises = files.map(async (file: File) => {
-            // Create a unique filename using the document ID and the original filename
-            const filename = `${docRef.id}_${file.name}`;
-
-            // Create a storage reference with the filename
-            const storageRef = ref(storage, `files/${filename}`);
-
-            // Upload the file to Firebase Storage using resumable upload
-            const uploadTask = uploadBytesResumable(storageRef, file);
-
-            // Monitor the upload progress and handle completion
-            uploadTask.on(
-              "state_changed",
-              (snapshot) => {
-                const progress =
-                  (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                console.log(`Upload is ${progress}% done`);
-                switch (snapshot.state) {
-                  case "paused":
-                    console.log("Upload is paused");
-                    break;
-                  case "running":
-                    console.log("Upload is running");
-                    break;
-                }
-              },
-              (error) => {
-                console.error("Error during file upload:", error);
-              },
-              async () => {
-                // Handle successful upload completion
-                const downloadURL = await getDownloadURL(
-                  uploadTask.snapshot.ref
-                );
-                console.log("File available at", downloadURL);
-
-                // Update the Firestore document with the file download URL
-                await updateDoc(docRef, {
-                  files: arrayUnion(downloadURL),
-                });
-              }
-            );
-          });
-
-          // Wait for all file uploads to complete
-          await Promise.all(fileUploadPromises);
-        }
       }
       updateTaskData();
       setLoading(false);
@@ -270,210 +303,230 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                   leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                   leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 >
-                  <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md sm:p-6">
+                  <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:p-6">
                     {loading ? (
-                     <div className="flex w-full justify-center items-center min-h-[50vh]"> <LoaderComp /></div>
+                      <div className="flex w-full justify-center items-center min-h-[50vh]">
+                        {" "}
+                        <LoaderComp />
+                      </div>
                     ) : (
                       <>
                         <div>
                           <div className="mt-1 text-center sm:my-1 ">
                             <Dialog.Title
                               as="h1"
-                              className="text-[26px] font-bold leading-6 text-gray-900 text-3xl pb-6"
+                              className="text-3xl font-bold leading-6 text-gray-900  pb-6"
                             >
                               {sidebarOpen?.id?.length > 1
                                 ? "Update Task"
                                 : "Add task"}
                             </Dialog.Title>
-                            <div className="mt-2 text-[18px]">
+                            <div className="mt-2 text-[20px]">
                               <form onSubmit={handleSubmit}>
-                                <div className="mt-2 flex flex-col gap-y-3 items-start">
-                                  <label className="w-full flex">
-                                    Task Title:
-                                    <input
-                                      name="title"
-                                      value={formData.title}
-                                      onChange={handleInputChange}
-                                      required
-                                      className="ml-5 border "
-                                    />
-                                  </label>
-                                  <label>
-                                    Number of Slides:
-                                    <input
-                                      type="number"
-                                      name="numberOfSlides"
-                                      value={formData.numberOfSlides}
-                                      onChange={handleInputChange}
-                                      required
-                                      min="1"
-                                      className="ml-5 border my-1 "
-                                    />
-                                  </label>
+                                <div className="mt-2 flex flex-col grid grid-cols-2 gap-4 items-start">
+                                  <div className="w-full flex flex-col gap-y-[20px]">
+                                    <label className="w-full flex">
+                                      Task Title:
+                                      <input
+                                        name="title"
+                                        value={formData.title}
+                                        onChange={handleInputChange}
+                                        required
+                                        className="ml-5 border "
+                                        disabled={isFieldDisabled()}
+                                      />
+                                    </label>
+                                    <label className="w-full flex">
+                                      Number of Slides:
+                                      <input
+                                        type="number"
+                                        name="numberOfSlides"
+                                        value={formData.numberOfSlides}
+                                        onChange={handleInputChange}
+                                        required
+                                        min="1"
+                                        className="ml-5 border my-1 "
+                                        disabled={isFieldDisabled()}
+                                      />
+                                    </label>
 
-                                  <label>
-                                    Type of Work:
-                                    <select
-                                      name="typeOfWork"
-                                      value={formData.typeOfWork}
-                                      onChange={handleInputChange}
-                                      required
-                                      className="ml-5 border my-1"
-                                    >
-                                      {/* Dynamic values for Type of Work */}
-                                      <option value="">
-                                        Select Type of Work
-                                      </option>
-                                      <option value="design">Design</option>
-                                      <option value="development">
-                                        Development
-                                      </option>
-                                      {/* Add more options as needed */}
-                                    </select>
-                                  </label>
-
-                                  <label>
-                                    PP (1 PP = 6 mins):
-                                    <input
-                                      type="number"
-                                      name="pp"
-                                      value={formData.pp}
-                                      onChange={handleInputChange}
-                                      required
-                                      min="1"
-                                      className="ml-5 border my-1"
-                                    />
-                                  </label>
-
-                                  <label>
-                                    Employee to be assigned:
-                                    <select
-                                      name="employeeAssigned"
-                                      value={formData.employeeAssigned}
-                                      onChange={handleInputChange}
-                                      className="ml-5 border my-1"
-                                    >
-                                      <option value="">Select Employee</option>
-                                      {list.map((employee) => (
-                                        <option
-                                          key={employee.name}
-                                          value={employee.name}
-                                        >
-                                          {employee.name}
+                                    <label className="w-full flex">
+                                      Type of Work:
+                                      <select
+                                        name="typeOfWork"
+                                        value={formData.typeOfWork}
+                                        onChange={handleInputChange}
+                                        required
+                                        className="ml-5 border my-1"
+                                        disabled={isFieldDisabled()}
+                                      >
+                                        {/* Dynamic values for Type of Work */}
+                                        <option value="">
+                                          Select Type of Work
                                         </option>
-                                      ))}{" "}
-                                      {/* Add more options as needed */}
-                                    </select>
-                                  </label>
-                                  <label>
-                                    Start Date/Time:
-                                    <input
-                                      type="datetime-local"
-                                      name="startDate"
-                                      value={formData.startDate}
-                                      onChange={handleInputChange}
-                                      className="ml-5 border my-1"
-                                    />
-                                  </label>
+                                        <option value="design">Design</option>
+                                        <option value="development">
+                                          Development
+                                        </option>
+                                        {/* Add more options as needed */}
+                                      </select>
+                                    </label>
+                                    <label className="w-full flex">
+                                      Job Status:
+                                      <select
+                                        name="jobStatus"
+                                        value={formData.jobStatus}
+                                        onChange={handleInputChange}
+                                        className="ml-5 border my-1"
+                                      >
+                                        <option value="unassigned">
+                                          Unassigned
+                                        </option>
+                                        <option value="notstarted">
+                                          Not Started
+                                        </option>
+                                        <option value="inprogress">
+                                          In Progress
+                                        </option>
+                                        <option value="completed">
+                                          Completed
+                                        </option>
+                                        <option value="handover">
+                                          Handover
+                                        </option>
+                                      </select>
+                                    </label>
 
-                                  <label>
-                                    End Date/Time:
-                                    <input
-                                      type="datetime-local"
-                                      name="endDate"
-                                      value={formData.endDate}
-                                      onChange={handleInputChange}
-                                      className="ml-5 border my-1"
-                                    />
-                                  </label>
+                                    <label className="w-full flex">
+                                      PP (1 PP = 6 mins):
+                                      <input
+                                        type="number"
+                                        name="pp"
+                                        value={formData.pp}
+                                        onChange={handleInputChange}
+                                        required
+                                        min="1"
+                                        disabled={isFieldDisabled()}
+                                        className="ml-5 border my-1"
+                                      />
+                                    </label>
+                                  </div>
+                                  <div className="w-full flex flex-col gap-y-[20px] ">
+                                    <label className="w-full flex">
+                                      Employee to be assigned:
+                                      <select
+                                        name="employeeAssigned"
+                                        value={formData.employeeAssigned}
+                                        onChange={handleInputChange}
+                                        className="ml-5 border my-1"
+                                        disabled={isFieldDisabled()}
+                                      >
+                                        <option value="">
+                                          Select Employee
+                                        </option>
+                                        {list.map((employee) => (
+                                          <option
+                                            key={employee.name}
+                                            value={employee.name}
+                                          >
+                                            {employee.name}
+                                          </option>
+                                        ))}{" "}
+                                        {/* Add more options as needed */}
+                                      </select>
+                                    </label>
+                                    <label className="w-full flex">
+                                      Start Date/Time:
+                                      <input
+                                        type="datetime-local"
+                                        name="startDate"
+                                        value={formData.startDate}
+                                        onChange={handleInputChange}
+                                        className="ml-5 border my-1"
+                                      />
+                                    </label>
 
-                                  <label>
-                                    Deadline Date/Time:
-                                    <input
-                                      type="datetime-local"
-                                      name="deadline"
-                                      value={formData.deadline}
-                                      onChange={handleInputChange}
-                                      className="ml-5 border my-1"
-                                    />
-                                  </label>
-                                  {/* Other form fields go here */}
-                                  {/* ... */}
+                                    <label className="w-full flex">
+                                      End Date/Time:
+                                      <input
+                                        type="datetime-local"
+                                        name="endDate"
+                                        value={formData.endDate}
+                                        onChange={handleInputChange}
+                                        className="ml-5 border my-1"
+                                      />
+                                    </label>
 
-                                  <label>
-                                    Files:
-                                    <input
-                                      type="file"
-                                      name="files"
-                                      onChange={handleFileUpload}
-                                      multiple
-                                      className="ml-5 border my-1"
-                                      accept=".pdf,.doc,.docx,.ppt,.pptx"
-                                    />
-                                  </label>
+                                    <label className="w-full flex">
+                                      Deadline :
+                                      <input
+                                        type="datetime-local"
+                                        name="deadline"
+                                        value={formData.deadline}
+                                        onChange={handleInputChange}
+                                        className="ml-5 border my-1"
+                                        disabled={isFieldDisabled()}
+                                      />
+                                    </label>
+                                    {/* Other form fields go here */}
+                                    {/* ... */}
 
-                                  <label className="flex items-center">
+                                    <label className="w-full flex">
+                                      Files:
+                                      <input
+                                        type="file"
+                                        name="files"
+                                        onChange={handleFileUpload}
+                                        multiple
+                                        className="ml-5 border my-1"
+                                        accept=".pdf,.doc,.docx,.ppt,.pptx"
+                                        disabled={isFieldDisabled()}
+                                      />
+                                    </label>
+                                  </div>
+                                </div>
+
+                                <div className=" flex w-full">
+                                  <label className="flex items-center w-full">
                                     Instructions:
                                     <textarea
                                       name="instructions"
                                       value={formData.instructions}
                                       onChange={handleTextareaChange}
-                                      className="ml-5 border my-1"
+                                      disabled={isFieldDisabled()}
+                                      className="ml-5 border my-1 min-w-[35%] h-[8vh]"
                                     />
                                   </label>
-
-                                  <label>
-                                    Job Status:
-                                    <select
-                                      name="jobStatus"
-                                      value={formData.jobStatus}
-                                      onChange={handleInputChange}
-                                      className="ml-5 border my-1"
-                                    >
-                                      <option value="unassigned">
-                                        Unassigned
-                                      </option>
-                                      <option value="notstarted">
-                                        Not Started
-                                      </option>
-                                      <option value="inprogress">
-                                        In Progress
-                                      </option>
-                                      <option value="completed">
-                                        Completed
-                                      </option>
-                                      <option value="handover">Handover</option>
-                                    </select>
-                                  </label>
-
+                                </div>
+                                <div className="flex w-full gap-x-6 ">
                                   <button
                                     type="submit"
-                                    className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                    className=" w-[50%] mt-8 justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                   >
                                     {sidebarOpen?.id?.length > 1
                                       ? "Update Task"
                                       : "Add task"}
                                   </button>
+                                  {/* <div className="mt-5 sm:mt-6"> */}
+                                  <button
+                                    type="button"
+                                    className=" w-[50%] justify-center rounded-md bg-red-600 mt-8 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                    onClick={(event) => {
+                                      // Handle the event if needed
+                                      setSidebarOpen((prevSidebarState) => ({
+                                        ...prevSidebarState,
+                                        isOpen: !prevSidebarState.isOpen,
+                                        id: "",
+                                      }));
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+                                  {/* </div> */}
                                 </div>
                               </form>
                             </div>
                           </div>
-                        </div>
-                        <div className="mt-5 sm:mt-6">
-                          <button
-                            type="button"
-                            className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                            onClick={(event) => {
-                              // Handle the event if needed
-                              setSidebarOpen((prevSidebarState) => ({
-                                ...prevSidebarState,
-                                isOpen: !prevSidebarState.isOpen,
-                                id: "",
-                              }));
-                            }}
-                          >
-                            Cancel
-                          </button>
                         </div>
                       </>
                     )}

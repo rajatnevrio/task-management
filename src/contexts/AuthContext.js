@@ -8,6 +8,7 @@ import {
   signOut,
 } from "firebase/auth";
 import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
+import LoaderComp from "../components/Loader";
 
 export function useAuth() {
   return useContext(AuthContext);
@@ -38,6 +39,9 @@ export function AuthProvider({ children }) {
       });
   }
 
+  useEffect(()=>{
+    console.log('firstcurrent',currentUser)
+  },[currentUser])
   async function addRoles(email, name) {
     try {
       const docRef = await addDoc(collection(db, "userRoles"), {
@@ -103,6 +107,7 @@ export function AuthProvider({ children }) {
       // Assuming there's only one document for a unique email
       const doc = querySnapshot.docs[0];
       const userRole = doc.data();
+      console.log('first3',userRole)
       return userRole;
     } catch (error) {
       console.error("Error getting user role:", error);
@@ -145,7 +150,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {loading?( <div className=" p-56 justify-center items-center"> <LoaderComp/> </div>): children}
     </AuthContext.Provider>
   );
 }

@@ -5,7 +5,6 @@ import { useAuth } from "../../contexts/AuthContext";
 function Profile() {
   const { currentUser, logout, getUserRoleByEmail } = useAuth();
   const [name, setName] = useState<string>("");
-  console.log("first", currentUser);
   const getUserDetail = async () => {
     const name = await getUserRoleByEmail(currentUser?.email);
     setName(name.name);

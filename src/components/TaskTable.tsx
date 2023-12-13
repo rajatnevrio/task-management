@@ -26,6 +26,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   setSidebarOpen,
   updateTaskData,
 }) => {
+  console.log('taskArray',taskArray)
   const columns: Column<Task>[] = React.useMemo(
     () =>
       taskArray.length > 0
