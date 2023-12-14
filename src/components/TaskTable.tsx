@@ -1,12 +1,13 @@
 // TaskTable.tsx
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useTable, Column } from "react-table";
-import { TrashIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
+import { TrashIcon, PencilSquareIcon ,ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { collection, doc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import ConfirmModal from "./ConfirmModal";
 import { toast } from "react-toastify";
+import CountdownTimer from "./CountDownTimer/CountDownTimer";
 interface Task {
   [key: string]: string | number; // Adjust the type according to your task structure
 }
@@ -26,7 +27,6 @@ const TaskTable: React.FC<TaskTableProps> = ({
   setSidebarOpen,
   updateTaskData,
 }) => {
-  console.log('taskArray',taskArray)
   const columns: Column<Task>[] = React.useMemo(
     () =>
       taskArray.length > 0
@@ -79,10 +79,13 @@ const TaskTable: React.FC<TaskTableProps> = ({
         link.length > 25 ? link.substring(0, 20) + "..." : link;
       return (
         <a href={link} target="_blank" rel="noopener noreferrer">
-          {shortenedLink}
+          <ArrowDownTrayIcon   style={{ height: "30px", width: "30px", cursor: "pointer" }}
+            className="hover:bg-blue-500 rounded-full p-1"/>
         </a>
       );
     };
+
+    const dateObj = new Date (element.timer)
     const formattedDate = date.toLocaleString("en-US", options);
     const formatDateTime = (timestamp: string | number) => {
       const date = new Date(timestamp.toString()); // Convert to string here
@@ -131,6 +134,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDateTime(element.deadline)}
         </td>
+        <td className="px-3 py-4 whitespace-nowrap w-[180px] border-r">
+       {element.timer ? <CountdownTimer targetDate={dateObj}  /> :'-'}
+
+        </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {formattedDate}
         </td>
@@ -174,8 +181,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
     "Slides",
     "Files",
     "Start Date",
-    "Due Date",
+    "End Date",
     "Deadline",
+    "Timer",
     "Created on",
     // "Instructions",
     "actions",

@@ -8,6 +8,7 @@ import { db } from "../../firebase/firebase";
 import TaskTable from "../TaskTable";
 import LoaderComp from "../Loader";
 import { UserDetails } from "../../types";
+import CountdownTimer from "../CountDownTimer/CountDownTimer";
 interface SidebarState {
   isOpen: boolean;
   id: string;
@@ -27,7 +28,6 @@ const Dashboard = () => {
       const userRole = await getUserRoleByEmail(currentUser?.email);
 
       // Log the userRole for debugging
-      console.log(userRole);
 
       if (userRole) {
         await setDetails({
@@ -92,6 +92,7 @@ const Dashboard = () => {
   if (!currentUser) {
     return <LoaderComp />;
   }
+ 
 
   return (
     <div className="flex w-full">
@@ -117,7 +118,7 @@ const Dashboard = () => {
               </button>
             )}
           </div>
-          <div className="">
+          <div className=" overflow-y-auto">
             <TaskTable
               taskArray={taskArray}
               setSidebarOpen={setSidebarOpen}
@@ -133,7 +134,11 @@ const Dashboard = () => {
             />
           )}
         </div>
+
+
       )}
+      <div>
+</div>
     </div>
   );
 };

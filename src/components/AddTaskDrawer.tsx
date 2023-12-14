@@ -66,6 +66,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     files: [],
     instructions: "",
     jobStatus: "unassigned",
+    timer: "",
   });
   const [list, setList] = useState<rolesApi[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -90,13 +91,13 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     if (name === "jobStatus" && value === "inprogress") {
       const currentDate = new Date();
       // Construct the ISO-like string
-      const endDate = new Date();
+      const timer = new Date();
       const ppValue = formData.pp.toString();
-      endDate.setMinutes(endDate.getMinutes() + parseInt(ppValue, 10) * 6);
+      timer.setMinutes(timer.getMinutes() + parseInt(ppValue, 10) * 6);
       setFormData((prevData) => ({
         ...prevData,
         startDate: formattedDate(currentDate),
-        endDate: formattedDate(endDate),
+        timer: formattedDate(timer),
       }));
     }
     if (
@@ -106,16 +107,14 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       const currentDate = new Date();
 
       const endDate = new Date();
-      if (formattedDate(currentDate) < formData.endDate) {
-        console.log("first12", formData.endDate);
 
-        const ppValue = formData.pp.toString();
-        endDate.setMinutes(endDate.getMinutes() + parseInt(ppValue, 10) * 6);
-        setFormData((prevData) => ({
-          ...prevData,
-          endDate: formattedDate(currentDate),
-        }));
-      }
+      const ppValue = formData.pp.toString();
+      endDate.setMinutes(endDate.getMinutes() + parseInt(ppValue, 10) * 6);
+      setFormData((prevData) => ({
+        ...prevData,
+        endDate: formattedDate(currentDate),
+        timer: "",
+      }));
     }
     if (
       name === "jobStatus" &&
@@ -125,6 +124,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         ...prevData,
         startDate: "",
         endDate: "",
+        timer: "",
       }));
     }
   };

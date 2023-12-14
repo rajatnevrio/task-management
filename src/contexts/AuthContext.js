@@ -39,9 +39,7 @@ export function AuthProvider({ children }) {
       });
   }
 
-  useEffect(()=>{
-    console.log('firstcurrent',currentUser)
-  },[currentUser])
+  useEffect(() => {}, [currentUser]);
   async function addRoles(email, name) {
     try {
       const docRef = await addDoc(collection(db, "userRoles"), {
@@ -66,23 +64,23 @@ export function AuthProvider({ children }) {
   }
   async function getUserRoles() {
     const userRolesCollection = collection(db, "userRoles");
-  
+
     try {
       // Create a query with a where condition
       const querySnapshot = await getDocs(
         query(userRolesCollection, where("role", "==", "employee"))
       );
-  
+
       const userRolesArray = [];
-  
+
       querySnapshot.forEach((doc) => {
         // Access data for each document
         const data = doc.data();
-  
+
         // Add the document data to the array
         userRolesArray.push(data);
       });
-  
+
       return userRolesArray;
     } catch (error) {
       console.error("Error getting user roles:", error);
@@ -107,7 +105,6 @@ export function AuthProvider({ children }) {
       // Assuming there's only one document for a unique email
       const doc = querySnapshot.docs[0];
       const userRole = doc.data();
-      console.log('first3',userRole)
       return userRole;
     } catch (error) {
       console.error("Error getting user role:", error);
@@ -145,12 +142,19 @@ export function AuthProvider({ children }) {
     logout,
     resetPassword,
     getUserRoles,
-    getUserRoleByEmail
+    getUserRoleByEmail,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {loading?( <div className=" p-56 justify-center items-center"> <LoaderComp/> </div>): children}
+      {loading ? (
+        <div className=" p-56 justify-center items-center">
+          {" "}
+          <LoaderComp />{" "}
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 }
