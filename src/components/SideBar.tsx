@@ -6,14 +6,14 @@ import {
   HomeIcon,
   ArrowLeftOnRectangleIcon,
   ArrowRightOnRectangleIcon,
-  UsersIcon,
+  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: HomeIcon, count: "5", current: true },
-  { name: "Profile", href: "/profile", icon: UsersIcon, current: false },
+  { name: "Profile", href: "/profile", icon: UserCircleIcon, current: false },
   // {
   //   name: "Projects",
   //   href: "#",

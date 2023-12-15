@@ -8,7 +8,6 @@ import { db } from "../../firebase/firebase";
 import TaskTable from "../TaskTable";
 import LoaderComp from "../Loader";
 import { UserDetails } from "../../types";
-import CountdownTimer from "../CountDownTimer/CountDownTimer";
 interface SidebarState {
   isOpen: boolean;
   id: string;
@@ -101,10 +100,12 @@ const Dashboard = () => {
           <LoaderComp />
         </div>
       ) : (
-        <div className="mx-8  w-full flex flex-col">
-          <div className="flex w-full justify-start">
+        <div className="m-8  w-full flex flex-col">
+          <div className="flex w-full justify-between ">
+            <span className=" flex items-center justify-center text-4xl font-semibold">Task Management</span>
             {currentUser.role === "admin" && (
               <button
+              title="Add task"
                 onClick={() => {
                   setSidebarOpen((prevSidebarState) => ({
                     ...prevSidebarState,
@@ -112,7 +113,7 @@ const Dashboard = () => {
                     id: "",
                   }));
                 }}
-                className="h-12 my-4 mr-16 p-2 rounded-lg w-fit bg-blue-500"
+                className="h-12 my-4 mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
               >
                 Add Task
               </button>

@@ -11,7 +11,7 @@ interface ShowCounterProps {
 
 const ExpiredNotice: React.FC = () => {
   return (
-    <div className="text-center p-1 border rounded-md   ">
+    <div className="text-center p-1  rounded-md   ">
       <span className="text-xl font-bold text-red-500">Expired!!!</span>
       {/* <p className="text-base">Please select a future date and time.</p> */}
     </div>
@@ -26,17 +26,14 @@ const ShowCounter: React.FC<ShowCounterProps> = ({
 }) => {
   return (
     <div className="p-2 width-[150px]">
-      <a
-        href="https://tapasadhikary.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex justify-center items-center font-semibold text-base p-1 border rounded-md text-black"
+      <span
+        className="flex justify-center items-center font-bold text-base p-1  rounded-md text-black"
       >
         {days > 0 && (
           <>
             <DateTimeDisplay
               value={days.toString()}
-              type={"Days"}
+              type={""}
               isDanger={days <= 3}
             />
             <p>:</p>
@@ -46,28 +43,28 @@ const ShowCounter: React.FC<ShowCounterProps> = ({
           <>
             <DateTimeDisplay
               value={hours.toString()}
-              type={"Hours"}
+              type={""}
               isDanger={hours <= 3}
             />
-            <p>:</p>
+            <p> : </p>
           </>
         )}
         {minutes > 0 && (
           <>
             <DateTimeDisplay
               value={minutes.toString()}
-              type={"Mins"}
+              type={""}
               isDanger={minutes <= 3}
             />
-            <p>:</p>
+            <p> : </p>
           </>
         )}
         <DateTimeDisplay
           value={seconds.toString()}
-          type={"Seconds"}
+          type={"left"}
           isDanger={false}
         />
-      </a>
+      </span>
     </div>
   );
 };
@@ -78,7 +75,6 @@ interface CountdownTimerProps {
 
 const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate }) => {
   const { days, hours, minutes, seconds } = useCountdown(targetDate);
-
   if (days + hours + minutes + seconds <= 0) {
     return <ExpiredNotice />;
   } else {

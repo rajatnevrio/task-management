@@ -9,8 +9,8 @@ interface DateTimeDisplayProps {
 const DateTimeDisplay: FC<DateTimeDisplayProps> = ({ value, type, isDanger }) => {
   return (
     <div className={  isDanger ? 'color-[#ff0000] flex' : 'py-2 flex  items-center'}>
-      <p className='m-0'>{value}</p>
-      <span className='text-md'>{type}</span>
+      <p className='mx-1'>{value}</p>
+      <span className='text-md mr-1'>{type}</span>
     </div>
   );
 };
