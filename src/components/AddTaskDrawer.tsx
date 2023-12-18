@@ -93,10 +93,15 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       // Construct the ISO-like string
       const timer = new Date();
       const ppValue = formData.pp.toString();
-      timer.setMinutes(timer.getMinutes() + parseInt(ppValue, 10) * 6);
+      const minutesToAdd = parseInt(ppValue, 10) * 6;
+      console.log('first132',{timer,minutesToAdd})
+      timer.setMinutes(Math.round((timer.getMinutes()) + minutesToAdd));
+      console.log('first144',{timer,minutesToAdd})
+
       setFormData((prevData) => ({
         ...prevData,
         startDate: formattedDate(currentDate),
+        endDate: "",
         timer: formattedDate(timer),
       }));
     }
@@ -216,6 +221,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   const storage = getStorage();
   const getData = async () => {
     const val = await getUserRoles();
+    console.log('first12',val)
     setList(val);
   };
 
@@ -228,6 +234,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
     try {
       const { ...formDataWithoutFiles } = formData;
       if (sidebarOpen?.id?.length > 1) {
@@ -500,6 +507,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                 </div>
                                 <div className="flex w-full gap-x-6 ">
                                   <button
+                                    title="Submit"
                                     type="submit"
                                     className=" w-[50%] mt-8 justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                   >
@@ -510,7 +518,8 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                   {/* <div className="mt-5 sm:mt-6"> */}
                                   <button
                                     type="button"
-                                    className=" w-[50%] justify-center rounded-md bg-red-600 mt-8 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                    title="Cancel"
+                                    className=" w-[50%] justify-center rounded-md bg-red-600 mt-8 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                     onClick={(event) => {
                                       // Handle the event if needed
                                       setSidebarOpen((prevSidebarState) => ({

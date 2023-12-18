@@ -9,6 +9,7 @@ import DashboardPage from "./pages/DashboardPage";
 import ForgetPasswordPage from "./pages/ForgetPasswordPage";
 import ProfilePage from "./pages/ProfilePage";
 import Layout from "./components/Layout";
+import Employees from "./components/Employees/Employees";
 const App: React.FC = () => {
   return (
     <>
@@ -42,6 +43,11 @@ const App: React.FC = () => {
             <Route path="/Profile"   element={
                 <Layout>
                   <ProfilePage />
+                </Layout>
+              } />
+              <Route path="/employees"   element={
+                <Layout>
+                  <Employees />
                 </Layout>
               } />
             {/* <Route path="/dashboard" element={<DashboardPage />} /> */}

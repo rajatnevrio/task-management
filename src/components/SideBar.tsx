@@ -2,9 +2,9 @@ import {
   CalendarIcon,
   ChartPieIcon,
   DocumentDuplicateIcon,
-  FolderIcon,
+  UserPlusIcon,
   HomeIcon,
-  ArrowLeftOnRectangleIcon,
+  UserGroupIcon,
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
@@ -12,8 +12,10 @@ import { useAuth } from "../contexts/AuthContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: HomeIcon, count: "5", current: true },
-  { name: "Profile", href: "/profile", icon: UserCircleIcon, current: false },
+  { name: "Dashboard", href: "/", icon: HomeIcon, count: "5", current: true, role: 'all' },
+  { name: "Employees", href: "/employees", icon: UserGroupIcon, current: false, role: 'admin' },
+  { name: "Task Creators", href: "/profile", icon: UserPlusIcon, current: false, role: 'admin' },
+  { name: "Profile", href: "/profile", icon: UserCircleIcon, current: false, role: 'all' },
   // {
   //   name: "Projects",
   //   href: "#",
@@ -61,7 +63,9 @@ export default function Sidebar() {
         <ul role="list" className="flex flex-1 flex-col gap-y-7">
           <li>
             <ul role="list" className="-mx-2 space-y-1">
-              {navigation.map((item) => (
+            {navigation
+                .filter(item => item.role === 'all' || (currentUser && currentUser.role === 'admin' && item.role === 'admin'))
+                .map((item)=> (
                 <li key={item.name}>
                   <Link
                     to={item.href}
