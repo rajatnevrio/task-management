@@ -87,7 +87,6 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
             role: type ? "task-creator" : "employee",
           }
         );
-        console.log("res", response);
         updateTaskData();
 
         toast.success("user created successfully");

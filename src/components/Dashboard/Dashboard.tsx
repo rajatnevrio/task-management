@@ -26,7 +26,6 @@ const Dashboard = () => {
     try {
 
       // Log the userRole for debugging
-console.log('firstrole',currentUser)
       if (currentUser) {
         await setDetails({
           name: currentUser.displayName,

@@ -71,14 +71,16 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   });
   const [list, setList] = useState<rolesApi[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const { getUserRoles ,currentUser } = useAuth();
+  const { getUserRoles, currentUser } = useAuth();
   const formattedDate = (date: any) => {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
     const day = date.getDate().toString().padStart(2, "0");
     const hours = date.getHours().toString().padStart(2, "0");
     const minutes = date.getMinutes().toString().padStart(2, "0");
-    const isoString = `${year}-${month}-${day}T${hours}:${minutes}`;
+    const seconds = date.getSeconds().toString().padStart(2, "0");
+
+    const isoString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
     return isoString;
   };
   const handleInputChange = (
@@ -94,9 +96,9 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       // Construct the ISO-like string
       const timer = new Date();
       const ppValue = formData.pp.toString();
-      const minutesToAdd = parseInt(ppValue, 10) * 6;
-      console.log('first132',{timer,minutesToAdd})
-      timer.setMinutes(Math.round((timer.getMinutes()) + minutesToAdd));
+      const minutesToAdd = parseInt(ppValue, 10) * 1;
+      timer.setMinutes(timer.getMinutes() + minutesToAdd);
+      console.log('first1432',formattedDate(timer))
       console.log('first144',{timer,minutesToAdd})
 
       setFormData((prevData) => ({
@@ -228,14 +230,12 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       );
 
       const users = response.data;
-      console.log('firstusers',users)
       setList(users);
     } catch (error: any) {
       console.error("Error fetching user data:", error.message);
       // Handle error accordingly, e.g., show an error message to the user
     }
   };
- 
 
   useEffect(() => {
     if (sidebarOpen?.id?.length > 1) {

@@ -26,48 +26,58 @@ const ShowCounter: React.FC<ShowCounterProps> = ({
 }) => {
   return (
     <div className="p-2 width-[150px]">
-      <span
-        className="flex justify-center items-center font-bold text-base p-1  rounded-md text-black"
-      >
-        {days > 0 && (
-          <>
-            <DateTimeDisplay
-              value={days.toString()}
-              type={""}
-              isDanger={days <= 3}
-            />
-            <p>:</p>
-          </>
-        )}
-        {hours > 0 && (
-          <>
-            <DateTimeDisplay
-              value={hours.toString()}
-              type={""}
-              isDanger={hours <= 3}
-            />
-            <p> : </p>
-          </>
-        )}
-        {minutes > 0 && (
-          <>
-            <DateTimeDisplay
-              value={minutes.toString()}
-              type={""}
-              isDanger={minutes <= 3}
-            />
-            <p> : </p>
-          </>
-        )}
-        <DateTimeDisplay
-          value={seconds.toString()}
-          type={"left"}
-          isDanger={false}
-        />
-      </span>
+      {days + hours + minutes + seconds > 0 ? (
+        <span className="flex justify-center items-center font-bold text-base p-1  rounded-md text-black">
+          {days > 0 && (
+            <>
+              <DateTimeDisplay
+                value={days.toString()}
+                type={""}
+                isDanger={days <= 3}
+              />
+              <p>:</p>
+            </>
+          )}
+          {hours > 0 && (
+            <>
+              <DateTimeDisplay
+                value={hours.toString()}
+                type={""}
+                isDanger={hours <= 3}
+              />
+              <p> : </p>
+            </>
+          )}
+          {minutes > 0 && (
+            <>
+              <DateTimeDisplay
+                value={minutes.toString()}
+                type={""}
+                isDanger={minutes <= 3}
+              />
+              <p> : </p>
+            </>
+          )}
+          <DateTimeDisplay
+            value={seconds.toString()}
+            type={"left"}
+            isDanger={false}
+          />
+        </span>
+      ) : (
+        // Display elapsed time
+        <span className="flex justify-center items-center font-bold text-base p-1  rounded-md text-red-500">
+          <DateTimeDisplay
+            value={`${days>0 ?  `${-days}:` :''}${hours>0 ?  `${-hours}:` :''}${-minutes}:${-seconds}`}
+            type={"elapsed"}
+            isDanger={false}
+          />
+        </span>
+      )}
     </div>
   );
 };
+
 
 interface CountdownTimerProps {
   targetDate: Date;
@@ -75,9 +85,9 @@ interface CountdownTimerProps {
 
 const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate }) => {
   const { days, hours, minutes, seconds } = useCountdown(targetDate);
-  if (days + hours + minutes + seconds <= 0) {
-    return <ExpiredNotice />;
-  } else {
+  // if (days + hours + minutes + seconds <= 0) {
+  //   return <ExpiredNotice />;
+  // } else {
     return (
       <ShowCounter
         days={days}
@@ -86,7 +96,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate }) => {
         seconds={seconds}
       />
     );
-  }
+  // }
 };
 
 export default CountdownTimer;

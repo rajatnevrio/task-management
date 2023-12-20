@@ -155,13 +155,13 @@ const SignIn: React.FC = () => {
                     </div>
                   </form>
                 </div>
-                <p className="p-4 flex w-full justify-center">
+                {/* <p className="p-4 flex w-full justify-center">
                   Need an account?{" "}
                   <Link to="/signup" className="text-blue-500 px-3 ">
                     {" "}
                     Sign Up
                   </Link>
-                </p>
+                </p> */}
               </div>
             </div>
           </div>
