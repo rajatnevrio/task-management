@@ -1,6 +1,8 @@
 // TaskTable.tsx
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useTable, Column } from "react-table";
+import axios from "axios";
+
 import {
   TrashIcon,
   PencilSquareIcon,
@@ -19,80 +21,76 @@ import { db } from "../firebase/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import ConfirmModal from "./ConfirmModal";
 import { toast } from "react-toastify";
+import { AddModalState, Employee } from "../types";
 
 interface rolesApi {
   email: string;
   name: string;
   role: string;
+  displayName: string;
+  uid: string;
 }
-interface TaskTableProps {
+interface EmployeeTableProps {
+  list:Employee[],
+  modalState: AddModalState;
+  setModalState: Dispatch<SetStateAction<AddModalState>>;
   updateTaskData: () => void;
+  type ? : string
 }
 interface ModalState {
   isOpen: boolean;
-  email: string;
+  uid: string;
 }
 
-const EmployeesTable: React.FC<TaskTableProps> = ({
+const EmployeesTable: React.FC<EmployeeTableProps> = ({
+  list,
+  modalState,
+  setModalState,
   updateTaskData,
+  type
 }) => {
-  const [list, setList] = useState<rolesApi[]>([]);
 
-  const { currentUser, getUserRoles } = useAuth();
+  const { currentUser } = useAuth();
 
   const [confirmModal, setConfirmModal] = useState<ModalState>({
     isOpen: false,
-    email: "",
+    uid: "",
   });
   const [loading, setLoading] = useState<boolean>(false);
   const handleDelete = async (emailId: string) => {
     setLoading(true);
     try {
-      // Form a reference to the collection
-      const userRolesCollectionRef = collection(db, "userRoles");
+      const response = await axios.delete(
+        `${process.env.REACT_APP_API_URL}/deleteUser/${emailId}`
+      );
 
-      // Create a query to find the document with the specified email
-      const q = query(userRolesCollectionRef, where("email", "==", emailId));
-
-      // Execute the query
-      const querySnapshot = await getDocs(q);
-
-      // Check if there is a matching document
-      if (querySnapshot.size === 0) {
-        // No matching document found
+      // Check if the request was successful (status code 2xx)
+      if (response.status === 200) {
         setLoading(false);
-        toast.error("Task not found");
-        return;
+        toast.success("User Deleted Successfully");
+        updateTaskData();
+      } else {
+        // Handle errors based on the response status
+        setLoading(false);
+        console.error("Error deleting user:", response.data);
+        toast.error("Failed to delete user");
       }
-
-      // Since there should be only one matching document, get the first document reference
-      const taskDocRef = doc(db, "userRoles", querySnapshot.docs[0].id);
-
-      // Delete the document
-      await deleteDoc(taskDocRef);
-
+    } catch (error: any) {
+      console.error("Error deleting user:", error.message);
       setLoading(false);
-      toast.success("Task Deleted Successfully");
-      updateTaskData();
-    } catch (error) {
-      console.error("Error deleting document:", error);
-      setLoading(false);
-      toast.error("Failed to delete task");
+      toast.error("Failed to delete user");
     }
   };
-  const getData = async () => {
-    const val = await getUserRoles();
-    console.log("first12", val);
-    setList(val);
-  };
-  useEffect(() => {
-    getData();
-  }, []);
+
+
+
   const tableRows = list.map((element, index) => {
     return (
       <tr className="items text-md text-center">
         <td className="px-3 py-4 whitespace-nowrap border-r">{index + 1}</td>
-        <td className="px-3 py-4 whitespace-nowrap border-r">{element.name}</td>
+        <td className="px-3 py-4 whitespace-nowrap border-r">
+          {element.displayName}
+        </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {element.email}
         </td>
@@ -106,7 +104,7 @@ const EmployeesTable: React.FC<TaskTableProps> = ({
               onClick={() =>
                 setConfirmModal({
                   isOpen: true,
-                  email: element.email,
+                  uid: element.uid,
                 })
               }
             />
@@ -115,13 +113,13 @@ const EmployeesTable: React.FC<TaskTableProps> = ({
             title="Edit task"
             style={{ height: "30px", width: "30px", cursor: "pointer" }}
             className="hover:bg-green-500 rounded-full p-1"
-            // onClick={() =>
-            //   setSidebarOpen((prevSidebarState) => ({
-            //     ...prevSidebarState,
-            //     isOpen: true,
-            //     id: element?.docId?.toString(), // Ensure id is treated as a string
-            //   }))
-            // }
+            onClick={() =>
+              setModalState((prevSidebarState) => ({
+                ...prevSidebarState,
+                isOpen: true,
+                details: element,
+              }))
+            }
           />
         </td>
       </tr>
@@ -134,12 +132,10 @@ const EmployeesTable: React.FC<TaskTableProps> = ({
     // "Instructions",
     "actions",
   ];
-  
+
   return (
     <>
-      <table
-        className="-my-2 overflow-x-auto border  mx-4 sm:m-8 lg:mx-1 overflowY-auto"
-      >
+      <table className="-my-2 overflow-x-auto border  mx-4 sm:m-8 lg:mx-1 overflowY-auto">
         <thead>
           <tr className="border  rounded p-2 bg-gray-200">
             {tableHeaders.map((header, index) => (
@@ -159,11 +155,11 @@ const EmployeesTable: React.FC<TaskTableProps> = ({
           message="Are you sure you want to delete this employee?"
           confirmButton="Delete"
           onConfirm={() => {
-            handleDelete(confirmModal.email);
-            setConfirmModal({ isOpen: false, email: "" });
+            handleDelete(confirmModal.uid);
+            setConfirmModal({ isOpen: false, uid: "" });
           }}
           isOpen={confirmModal.isOpen}
-          onClose={() => setConfirmModal({ isOpen: false, email: "" })}
+          onClose={() => setConfirmModal({ isOpen: false, uid: "" })}
           isLoading={loading}
         />
       )}

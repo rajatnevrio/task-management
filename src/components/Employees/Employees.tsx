@@ -6,130 +6,124 @@ import LoaderComp from "../Loader";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase/firebase";
-import { UserDetails } from "../../types";
+import { AddModalState, UserDetails } from "../../types";
 import EmployeesTable from "../EmployeesTable";
 import AddEmployee from "../AddEmployee";
+import axios from "axios";
+interface rolesApi {
+  email: string;
+  name: string;
+  role: string;
+  displayName: string;
+  uid: string;
+}
+interface EmployeeProps {
+  type?: string;
+}
+function Employees({ type }: EmployeeProps) {
+  const { currentUser } = useAuth();
+  const [loading, setLoading] = useState<boolean>(false);
+  const [modalState, setModalState] = useState<AddModalState>({
+    isOpen: false,
+    details: {
+      displayName: "",
+      uid: "",
+      email: "",
+      // Add other properties as needed
+    },
+  });
+  const [list, setList] = useState<rolesApi[]>([]);
 
-  
-function Employees() {
-    const { currentUser, logout, getUserRoleByEmail } = useAuth();
-    const [taskArray, setTaskArray] = useState<{ id: string }[]>([]);
-    const [loading, setLoading] = useState<boolean>(false);
-    const [isModalOpen, setModal] = useState<boolean>(false);
-    const [details, setDetails] = useState<UserDetails | undefined>();
-    const getUserDetail = async () => {
-      try {
-        const userRole = await getUserRoleByEmail(currentUser?.email);
-  
-        // Log the userRole for debugging
-  
-        if (userRole) {
-          await setDetails({
-            name: userRole.name,
-            email: userRole.email,
-            role: userRole.role,
-          });
-          await getTaskData(userRole.name);
-        }
-      } catch (error) {
-        console.error("Error getting user detail:", error);
-      }
-    };
-    const navigate = useNavigate();
-    const updateTaskData = () => {
-      getTaskData(details?.name);
-    };
-    const getTaskData = async (name2: string | undefined) => {
-      const taskCollection = collection(db, "tasks");
-      setLoading(true);
-      try {
-        const querySnapshot =
-          currentUser.role === "admin"
-            ? await getDocs(taskCollection)
-            : await getDocs(
-                query(taskCollection, where("employeeAssigned", "==", `${name2}`))
-              );
-  
-        // Convert the query snapshot to an array of objects
-        const tasksArray = querySnapshot.docs.map((doc) => {
-          const data = doc.data();
-          // Convert createdAt to a string or another suitable representation
-          const createdAtString = `${data.createdAt.seconds}.${data.createdAt.nanoseconds}`;
-          // Return the modified data
-          return {
-            id: doc.id,
-            ...data,
-            createdAt: createdAtString,
-          };
-        });
-  
-        setTaskArray(tasksArray);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error getting tasks:", error);
-        setLoading(false);
-      }
-    };
-    const getData = async () => {
-      await getUserDetail();
-      // await getTaskData();
-    };
-    useEffect(() => {
-      getData();
-  
-      if (!currentUser) {
-        navigate("/signin");
-      } else {
-      }
-    }, [currentUser]);
-  
-    if (!currentUser) {
-      return <LoaderComp />;
+
+  const navigate = useNavigate();
+  const updateData = () => {
+    getData()
+  };
+
+  const getData = async () => {
+    setLoading(true)
+
+    try {
+      // Replace the API call with the getAllUsers API using Axios
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_URL}/getUsersByRole/${type? `task-creator`:`employee`}`
+      );
+
+      const users = response.data;
+      setLoading(false)
+
+      setList(users);
+    } catch (error: any) {
+      setLoading(false)
+
+      console.error("Error fetching user data:", error.message);
+      // Handle error accordingly, e.g., show an error message to the user
     }
-   
-  
-    return (
-      <div className="flex w-full">
-        {loading ? (
-          <div className="w-full justify-center items-center flex">
-            <LoaderComp />
-          </div>
-        ) : (
-          <div className="m-8  w-full flex flex-col">
-            <div className="flex w-full justify-between ">
-              <span className=" flex items-center justify-center text-4xl font-semibold">Employees</span>
-              {currentUser.role === "admin" && (
-                <button
-                title="Add task"
-                  onClick={() => {
-                    setModal(true);
-                  }}
-                  className="h-12 my-4 mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
-                >
-                  Add Employee
-                </button>
-              )}
-            </div>
-            <div className=" overflow-y-auto">
-              <EmployeesTable
-                updateTaskData={updateTaskData}
-              />
-            </div>
-            {isModalOpen && (
-              <AddEmployee
-                isModalOpen={isModalOpen}
-                setModal={setModal}
-                updateTaskData={updateTaskData}
-              />
+  };
+
+
+  useEffect(() => {
+    getData();
+
+    if (!currentUser) {
+      navigate("/signin");
+    } else {
+    }
+  }, [type]);
+
+  if (!currentUser) {
+    return <LoaderComp />;
+  }
+
+  return (
+    <div className="flex w-full">
+      {loading ? (
+        <div className="w-full justify-center items-center flex">
+          <LoaderComp />
+        </div>
+      ) : (
+        <div className="m-8  w-full flex flex-col">
+          <div className="flex w-full justify-between ">
+            <span className=" flex items-center justify-center text-4xl font-semibold">
+              {type ? `Task Creators` : `Employees`}
+            </span>
+            {currentUser.role === "admin" && (
+              <button
+                title={type ? `Add Task Creator` : `Add Employee`}
+                onClick={() => {
+                  setModalState((prev) => ({
+                    ...prev,
+                    isOpen: !modalState.isOpen,
+                  }));
+                }}
+                className="h-12 my-4 mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
+              >
+                {type ? `Add Task Creator` : `Add Employee`}
+              </button>
             )}
           </div>
-  
-  
-        )}
-        <div>
-  </div>
-      </div>
-    );
+          <div className=" overflow-y-auto">
+            <EmployeesTable
+            list={list}
+              modalState={modalState}
+              setModalState={setModalState}
+              updateTaskData={updateData}
+              type={type}
+            />
+          </div>
+          {modalState.isOpen && (
+            <AddEmployee
+              modalState={modalState}
+              setModalState={setModalState}
+              updateTaskData={updateData}
+              type={type}
+            />
+          )}
+        </div>
+      )}
+      <div></div>
+    </div>
+  );
 }
 
 export default Employees;

@@ -14,7 +14,7 @@ interface SidebarState {
 }
 
 const Dashboard = () => {
-  const { currentUser, logout, getUserRoleByEmail } = useAuth();
+  const { currentUser, logout } = useAuth();
   const [taskArray, setTaskArray] = useState<{ id: string }[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<SidebarState>({
@@ -24,17 +24,16 @@ const Dashboard = () => {
   const [details, setDetails] = useState<UserDetails | undefined>();
   const getUserDetail = async () => {
     try {
-      const userRole = await getUserRoleByEmail(currentUser?.email);
 
       // Log the userRole for debugging
-
-      if (userRole) {
+console.log('firstrole',currentUser)
+      if (currentUser) {
         await setDetails({
-          name: userRole.name,
-          email: userRole.email,
-          role: userRole.role,
+          name: currentUser.displayName,
+          email: currentUser.email,
+          role: currentUser.role,
         });
-        await getTaskData(userRole.name);
+        await getTaskData(currentUser.displayName);
       }
     } catch (error) {
       console.error("Error getting user detail:", error);
@@ -91,7 +90,6 @@ const Dashboard = () => {
   if (!currentUser) {
     return <LoaderComp />;
   }
- 
 
   return (
     <div className="flex w-full">
@@ -102,10 +100,12 @@ const Dashboard = () => {
       ) : (
         <div className="m-8  w-full flex flex-col">
           <div className="flex w-full justify-between ">
-            <span className=" flex items-center justify-center text-4xl font-semibold">Task Management</span>
+            <span className=" flex items-center justify-center text-4xl font-semibold">
+              Task Management
+            </span>
             {currentUser.role === "admin" && (
               <button
-              title="Add task"
+                title="Add task"
                 onClick={() => {
                   setSidebarOpen((prevSidebarState) => ({
                     ...prevSidebarState,
@@ -135,11 +135,8 @@ const Dashboard = () => {
             />
           )}
         </div>
-
-
       )}
-      <div>
-</div>
+      <div></div>
     </div>
   );
 };

@@ -32,23 +32,26 @@ import {
 import { toast } from "react-toastify";
 import { useAuth } from "../contexts/AuthContext";
 import LoaderComp from "./Loader";
-import { UserDetails } from "../types";
+import { AddModalState, UserDetails } from "../types";
 import { Link, useNavigate } from "react-router-dom";
-
+import axios from "axios";
 interface AddEmployeeProps {
-  isModalOpen: boolean;
-  setModal: Dispatch<SetStateAction<boolean>>;
+  modalState: AddModalState;
+  setModalState: Dispatch<SetStateAction<AddModalState>>;
   updateTaskData: () => void;
+  type?: string;
 }
+
 interface rolesApi {
   email: string;
   name: string;
   role: string;
 }
 const AddEmployee: React.FC<AddEmployeeProps> = ({
-  isModalOpen,
-  setModal,
+  modalState,
+  setModalState,
   updateTaskData,
+  type,
 }) => {
   const { signUp, currentUser } = useAuth();
   const emailRef = useRef<HTMLInputElement>(null);
@@ -71,14 +74,27 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
     try {
       setError("");
       setLoading(true);
-      if (emailRef.current && passwordRef.current) {
-        await signUp(
-          emailRef.current.value,
-          passwordRef.current.value,
-          nameRef.current?.value
+      if (modalState.details.displayName.length > 1) {
+        await handleUpdateUser();
+      }
+      if (emailRef.current && passwordRef.current && nameRef.current) {
+        const response = await axios.post(
+          ` ${process.env.REACT_APP_API_URL}/createUser`,
+          {
+            email: emailRef.current.value,
+            password: passwordRef.current.value,
+            displayName: nameRef.current.value,
+            role: type ? "task-creator" : "employee",
+          }
         );
+        console.log("res", response);
+        updateTaskData();
+
         toast.success("user created successfully");
-        setModal(false)
+        setModalState((prev) => ({
+          ...prev,
+          isOpen: !modalState.isOpen,
+        }));
       }
     } catch (error) {
       console.log(error);
@@ -93,15 +109,71 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
 
     setLoading(false);
   };
+  const handleUpdateUser = async () => {
+    try {
+      setLoading(true);
+      const uid = modalState.details?.uid;
+      const displayName = nameRef?.current?.value;
+      const email = emailRef?.current?.value;
 
+      // Make a PUT request to your API endpoint
+      const response = await axios.put(
+        ` ${process.env.REACT_APP_API_URL}/updateUser/${uid}`,
+        { displayName, email }
+      );
+      setModalState((prev) => ({
+        ...prev,
+        isOpen: false,
+        details: initState,
+      }));
+      updateTaskData();
+      setLoading(false);
+
+      toast.success("User updated successfully");
+      // Handle success or update UI accordingly
+    } catch (error) {
+      setModalState((prev) => ({
+        ...prev,
+        isOpen: false,
+        details: initState,
+      }));
+      setLoading(false);
+
+      toast.error("Error updating user");
+      // Handle error or update UI accordingly
+    }
+  };
+  useEffect(() => {
+    if (
+      modalState.details &&
+      modalState.details.displayName &&
+      modalState.details.displayName.length > 1
+    ) {
+      nameRef.current!.value = modalState?.details?.displayName;
+      emailRef.current!.value = modalState?.details?.email;
+    }
+  }, [modalState.details]);
+  const initState = {
+    email: "",
+    name: "",
+    role: "",
+    displayName: "",
+    uid: "",
+  };
   return (
     <>
       {
-        <Transition.Root show={isModalOpen} as={Fragment}>
+        <Transition.Root show={modalState.isOpen} as={Fragment}>
           <Dialog
             as="div"
             className="relative z-10"
-            onClose={() => setModal(false)}
+            onClose={() =>
+              setModalState((prev) => ({
+                ...prev,
+                isOpen: false,
+                details: initState,
+              }))
+            }
           >
             <Transition.Child
               as={Fragment}
@@ -137,7 +209,11 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                         <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">
                           <div className="sm:mx-auto sm:w-full sm:max-w-md">
                             <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-                              Add Employee
+                              {modalState.details.displayName.length > 1
+                                ? "Update"
+                                : type
+                                ? `Add Task Creator`
+                                : ` Add Employee`}
                             </h2>
                           </div>
 
@@ -186,45 +262,54 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                                   </div>
                                 </div>
 
-                                <div>
-                                  <label
-                                    htmlFor="password"
-                                    className="block text-sm font-medium leading-6 text-gray-900"
-                                  >
-                                    Password
-                                  </label>
-                                  <div className="mt-2">
-                                    <input
-                                      id="password"
-                                      name="password"
-                                      type="password"
-                                      autoComplete="new-password"
-                                      required
-                                      ref={passwordRef}
-                                      className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <label
-                                    htmlFor="confirmPassword"
-                                    className="block text-sm font-medium leading-6 text-gray-900"
-                                  >
-                                    Confirm Password
-                                  </label>
-                                  <div className="mt-2">
-                                    <input
-                                      id="confirmPassword"
-                                      name="confirmPassword"
-                                      type="password"
-                                      autoComplete="new-password"
-                                      required
-                                      ref={confirmPasswordRef}
-                                      className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                    />
-                                  </div>
-                                </div>
+                                {modalState.details.displayName.length < 1 && (
+                                  <>
+                                    <div>
+                                      <label
+                                        htmlFor="password"
+                                        className="block text-sm font-medium leading-6 text-gray-900"
+                                      >
+                                        Password
+                                      </label>
+                                      <div className="mt-2">
+                                        <input
+                                          id="password"
+                                          name="password"
+                                          type="password"
+                                          autoComplete="new-password"
+                                          required={
+                                            modalState.details.displayName
+                                              .length < 1
+                                          }
+                                          ref={passwordRef}
+                                          className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <label
+                                        htmlFor="confirmPassword"
+                                        className="block text-sm font-medium leading-6 text-gray-900"
+                                      >
+                                        Confirm Password
+                                      </label>
+                                      <div className="mt-2">
+                                        <input
+                                          id="confirmPassword"
+                                          name="confirmPassword"
+                                          type="password"
+                                          autoComplete="new-password"
+                                          required={
+                                            modalState.details.displayName
+                                              .length < 1
+                                          }
+                                          ref={confirmPasswordRef}
+                                          className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                        />
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
 
                                 {error && (
                                   <div className="text-red-500 text-sm mt-2">
@@ -242,7 +327,19 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                                         : "hover:bg-indigo-500"
                                     } focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600`}
                                   >
-                                    {loading ? "Adding..." : "Add"}
+                                    {loading
+                                      ? ` ${
+                                          modalState.details.displayName
+                                            .length > 0
+                                            ? "Updating..."
+                                            : "Adding..."
+                                        }`
+                                      : `${
+                                          modalState.details.displayName
+                                            .length > 0
+                                            ? "Update"
+                                            : "Add"
+                                        }`}
                                   </button>
                                 </div>
                               </form>

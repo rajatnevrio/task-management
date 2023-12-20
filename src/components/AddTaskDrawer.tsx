@@ -32,6 +32,7 @@ import { toast } from "react-toastify";
 import { useAuth } from "../contexts/AuthContext";
 import LoaderComp from "./Loader";
 import { UserDetails } from "../types";
+import axios from "axios";
 interface SidebarState {
   isOpen: boolean;
   id: string;
@@ -45,7 +46,7 @@ interface AddTaskDrawerProps {
 }
 interface rolesApi {
   email: string;
-  name: string;
+  displayName: string;
   role: string;
 }
 const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
@@ -70,7 +71,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   });
   const [list, setList] = useState<rolesApi[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const { getUserRoles } = useAuth();
+  const { getUserRoles ,currentUser } = useAuth();
   const formattedDate = (date: any) => {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -220,10 +221,21 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   };
   const storage = getStorage();
   const getData = async () => {
-    const val = await getUserRoles();
-    console.log('first12',val)
-    setList(val);
+    try {
+      // Replace the API call with the getAllUsers API using Axios
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_URL}/getUsersByRole/employee`
+      );
+
+      const users = response.data;
+      console.log('firstusers',users)
+      setList(users);
+    } catch (error: any) {
+      console.error("Error fetching user data:", error.message);
+      // Handle error accordingly, e.g., show an error message to the user
+    }
   };
+ 
 
   useEffect(() => {
     if (sidebarOpen?.id?.length > 1) {
@@ -433,10 +445,10 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         </option>
                                         {list.map((employee) => (
                                           <option
-                                            key={employee.name}
-                                            value={employee.name}
+                                            key={employee.displayName}
+                                            value={employee.displayName}
                                           >
-                                            {employee.name}
+                                            {employee.displayName}
                                           </option>
                                         ))}{" "}
                                         {/* Add more options as needed */}

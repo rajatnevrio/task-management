@@ -1,10 +1,13 @@
 import React from 'react';
 import Employees from '../components/Employees/Employees';
 
-const EmployeesPage: React.FC = () => {
+interface EmployePageProps {
+  type ? : string
+}
+const EmployeesPage: React.FC<EmployePageProps> = ({ type}) => {
   return (
     <div>
-      <Employees />
+      <Employees type ={type} />
     </div>
   );
 };

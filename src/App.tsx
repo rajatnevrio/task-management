@@ -50,6 +50,11 @@ const App: React.FC = () => {
                   <Employees />
                 </Layout>
               } />
+               <Route path="/task-creators"   element={
+                <Layout>
+                  <Employees type="task_creator" />
+                </Layout>
+              } />
             {/* <Route path="/dashboard" element={<DashboardPage />} /> */}
           </Routes>
         </AuthProvider>

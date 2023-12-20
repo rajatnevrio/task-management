@@ -41,7 +41,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         : [],
     [taskArray]
   );
-  const { currentUser, logout, getUserRoles } = useAuth();
+  const { currentUser, logout } = useAuth();
   const [confirmModal, setConfirmModal] = useState<ModalState>({
     isOpen: false,
     id: "",
