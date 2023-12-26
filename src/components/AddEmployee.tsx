@@ -211,7 +211,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                               {modalState.details.displayName.length > 1
                                 ? "Update"
                                 : type
-                                ? `Add Task Creator`
+                                ? `Add Intake`
                                 : ` Add Employee`}
                             </h2>
                           </div>

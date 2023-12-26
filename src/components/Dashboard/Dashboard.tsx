@@ -100,11 +100,11 @@ const Dashboard = () => {
         <div className="m-8  w-full flex flex-col">
           <div className="flex w-full justify-between ">
             <span className=" flex items-center justify-center text-4xl font-semibold">
-              Task Management
+              Job Assignment
             </span>
             {currentUser.role === "admin" && (
               <button
-                title="Add task"
+                title="Create Job"
                 onClick={() => {
                   setSidebarOpen((prevSidebarState) => ({
                     ...prevSidebarState,
@@ -114,7 +114,7 @@ const Dashboard = () => {
                 }}
                 className="h-12 my-4 mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
               >
-                Add Task
+                Create Job
               </button>
             )}
           </div>

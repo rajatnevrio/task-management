@@ -85,11 +85,11 @@ function Employees({ type }: EmployeeProps) {
         <div className="m-8  w-full flex flex-col">
           <div className="flex w-full justify-between ">
             <span className=" flex items-center justify-center text-4xl font-semibold">
-              {type ? `Task Creators` : `Employees`}
+              {type ? `Intake Team` : `Employees`}
             </span>
             {currentUser.role === "admin" && (
               <button
-                title={type ? `Add Task Creator` : `Add Employee`}
+                title={type ? `Add Intake` : `Add Employee`}
                 onClick={() => {
                   setModalState((prev) => ({
                     ...prev,
@@ -98,7 +98,7 @@ function Employees({ type }: EmployeeProps) {
                 }}
                 className="h-12 my-4 mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
               >
-                {type ? `Add Task Creator` : `Add Employee`}
+                {type ? `Add Intake` : `Add Employee`}
               </button>
             )}
           </div>

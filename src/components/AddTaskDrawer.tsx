@@ -64,7 +64,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     startDate: "",
     endDate: "",
     deadline: "",
-    files: [],
+    files: [] as { name: string; url: string }[],
     instructions: "",
     jobStatus: "unassigned",
     timer: "",
@@ -98,8 +98,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       const ppValue = formData.pp.toString();
       const minutesToAdd = parseInt(ppValue, 10) * 1;
       timer.setMinutes(timer.getMinutes() + minutesToAdd);
-      console.log('first1432',formattedDate(timer))
-      console.log('first144',{timer,minutesToAdd})
 
       setFormData((prevData) => ({
         ...prevData,
@@ -135,6 +133,13 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         timer: "",
       }));
     }
+  };
+  const addValueTime = () => {
+    const timer = new Date();
+    const ppValue = formData.pp.toString();
+    const minutesToAdd = parseInt(ppValue, 10) * 1;
+    timer.setMinutes(timer.getMinutes() + minutesToAdd);
+    return { timer: formattedDate(timer), startTime: formattedDate(timer) };
   };
   const getDocById = async (docId: string) => {
     setLoading(true);
@@ -179,46 +184,40 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     }
   };
   const isFieldDisabled = () => userDetails?.role === "employee";
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLoading(true);
+
     const files = e.target.files;
     if (files && files.length > 0) {
       const fileUploadPromises = Array.from(files).map(async (file: File) => {
         const filename = `${file.name}`;
         const storageRef = ref(storage, `files/${filename}`);
         const uploadTask = uploadBytesResumable(storageRef, file);
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            setLoading(true);
-            const progress =
-              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            console.log(`Upload is ${progress}% done`);
-            switch (snapshot.state) {
-              case "paused":
-                console.log("Upload is paused");
-                break;
-              case "running":
-                console.log("Upload is running");
-                break;
-            }
-          },
-          (error) => {
-            console.error("Error during file upload:", error);
-          },
-          async () => {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            console.log("File available at", downloadURL);
-            if (downloadURL) {
-              setLoading(false);
-              toast.success("File uploaded successfully");
-            }
-            setFormData((prevData: any) => ({
-              ...prevData,
-              files: arrayUnion(downloadURL),
-            }));
-          }
-        );
+
+        // Wait for the upload to complete
+        await uploadTask;
+
+        // Get the download URL for the uploaded file
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+        // Return an object with name and url properties
+        return { name: filename, url: downloadURL };
       });
+
+      // Wait for all file uploads to complete
+      const newFiles = await Promise.all(fileUploadPromises);
+
+      // Display a success message
+      setLoading(false);
+
+      // Overwrite previous files with new files
+      setFormData((prevData: any) => ({
+        ...prevData,
+        files: newFiles,
+      }));
+
+      toast.success("Files uploaded successfully");
     }
   };
   const storage = getStorage();
@@ -246,7 +245,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
     try {
       const { ...formDataWithoutFiles } = formData;
       if (sidebarOpen?.id?.length > 1) {
@@ -257,6 +255,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         const docRef = await addDoc(collection(db, "tasks"), {
           ...formDataWithoutFiles,
           createdAt: serverTimestamp(),
+          timer: addValueTime(),
         });
         await updateDoc(docRef, {
           docId: docRef.id,
@@ -337,8 +336,8 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                               className="text-3xl font-bold leading-6 text-gray-900  pb-6"
                             >
                               {sidebarOpen?.id?.length > 1
-                                ? "Update Task"
-                                : "Add task"}
+                                ? "Update Job Sheet"
+                                : "Create Job Sheet"}
                             </Dialog.Title>
                             <div className="mt-2 text-[20px]">
                               <form onSubmit={handleSubmit}>
@@ -490,18 +489,40 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                     {/* Other form fields go here */}
                                     {/* ... */}
 
-                                    <label className="w-full flex">
+                                    <label className="w-full flex items-center">
                                       Files:
                                       <input
                                         type="file"
                                         name="files"
                                         onChange={handleFileUpload}
                                         multiple
-                                        className="ml-5 border my-1"
+                                        className="ml-5 border my-1 opacity-0 h-8 w-8"
                                         accept=".pdf,.doc,.docx,.ppt,.pptx"
                                         disabled={isFieldDisabled()}
                                       />
+                                      <span className="border text-[16px]  p-1">
+                                        {/* Customize the appearance of the label */}
+                                        Choose Files
+                                      </span>
                                     </label>
+                                    {formData.files.length > 0 && (
+                                      <div>
+                                        <p>Uploaded Files:</p>
+                                        <ul>
+                                          {formData.files.map((file, index) => (
+                                            <li key={index}>
+                                              <a
+                                                href={file.url} // Assuming 'url' is the property containing the file URL
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                              >
+                                                {file.name}
+                                              </a>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 
@@ -521,11 +542,19 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                   <button
                                     title="Submit"
                                     type="submit"
+                                    onClick={() => {
+                                      if (formData.jobStatus === "inprogress")
+                                        setFormData((prevData: any) => ({
+                                          ...prevData,
+                                          timer: addValueTime().timer,
+                                          startDate: addValueTime().startTime,
+                                        }));
+                                    }}
                                     className=" w-[50%] mt-8 justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                   >
                                     {sidebarOpen?.id?.length > 1
-                                      ? "Update Task"
-                                      : "Add task"}
+                                      ? "Update"
+                                      : "Create"}
                                   </button>
                                   {/* <div className="mt-5 sm:mt-6"> */}
                                   <button

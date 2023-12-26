@@ -77,18 +77,24 @@ const TaskTable: React.FC<TaskTableProps> = ({
       minute: "numeric",
       hour12: true,
     };
-    const formatDownloadLink = (link: string) => {
+    const formatDownloadLink = (link: any) => {
       // Display only the first 30 characters of the link
       const shortenedLink =
         link.length > 25 ? link.substring(0, 20) + "..." : link;
       return (
-        <a href={link} target="_blank" rel="noopener noreferrer">
-          <ArrowDownTrayIcon
-            title="Download file"
-            style={{ height: "30px", width: "30px", cursor: "pointer" }}
-            className="hover:bg-blue-500 rounded-full p-1"
-          />
-        </a>
+        <ul>
+        {link.map((file:any, index:any) => (
+          <li key={index}>
+            <a
+              href={file.url} // Assuming 'url' is the property containing the file URL
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {file.name},
+            </a>
+          </li>
+        ))}
+      </ul>
       );
     };
 
@@ -130,7 +136,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
           {element.numberOfSlides}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
-          {formatDownloadLink(String(element.files))}
+          {formatDownloadLink(element.files)}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDateTime(element.startDate)}

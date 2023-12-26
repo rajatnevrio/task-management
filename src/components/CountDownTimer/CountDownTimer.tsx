@@ -67,9 +67,39 @@ const ShowCounter: React.FC<ShowCounterProps> = ({
       ) : (
         // Display elapsed time
         <span className="flex justify-center items-center font-bold text-base p-1  rounded-md text-red-500">
+      { Math.abs(days) >0 && (
+            <>
+              <DateTimeDisplay
+                value={Math.abs(days).toString()}
+                type={""}
+                isDanger={days <= 3}
+              />
+              <p>:</p>
+            </>
+          )}
+          { Math.abs(hours) >0 && (
+            <>
+              <DateTimeDisplay
+                value={Math.abs(hours).toString()}
+                type={""}
+                isDanger={hours <= 3}
+              />
+              <p> : </p>
+            </>
+          )}
+          {Math.abs(minutes) >0 && (
+            <>
+              <DateTimeDisplay
+                value={Math.abs(minutes).toString()}
+                type={""}
+                isDanger={minutes <= 3}
+              />
+              <p> : </p>
+            </>
+          )}
           <DateTimeDisplay
-            value={`${days>0 ?  `${-days}:` :''}${hours>0 ?  `${-hours}:` :''}${-minutes}:${-seconds}`}
-            type={"elapsed"}
+            value={Math.abs(seconds).toString()}
+            type={"delay"}
             isDanger={false}
           />
         </span>
