@@ -18,7 +18,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { Dialog, Transition } from "@headlessui/react";
-import { CheckIcon } from "@heroicons/react/24/outline";
+import { CheckIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { DocumentData } from "@firebase/firestore-types";
 
 import { db } from "../firebase/firebase";
@@ -27,6 +27,7 @@ import {
   ref,
   uploadBytesResumable,
   getDownloadURL,
+  deleteObject,
 } from "firebase/storage";
 import { toast } from "react-toastify";
 import { useAuth } from "../contexts/AuthContext";
@@ -64,7 +65,8 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     startDate: "",
     endDate: "",
     deadline: "",
-    files: [] as { name: string; url: string }[],
+    sourceFiles: [] as { name: string; url: string ,id:string }[],
+    submitFiles: [] as { name: string; url: string ,id:string }[],
     instructions: "",
     jobStatus: "unassigned",
     timer: "",
@@ -184,42 +186,77 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     }
   };
   const isFieldDisabled = () => userDetails?.role === "employee";
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoading(true);
-
+  console.log('first12',e.target)
     const files = e.target.files;
     if (files && files.length > 0) {
       const fileUploadPromises = Array.from(files).map(async (file: File) => {
-        const filename = `${file.name}`;
+        const originalFileName = file.name;
+        const timestamp = Date.now();
+        const uniqueId = `${originalFileName}_${timestamp}`;
+        const filename = `${uniqueId}`;
         const storageRef = ref(storage, `files/${filename}`);
         const uploadTask = uploadBytesResumable(storageRef, file);
-
+  
         // Wait for the upload to complete
         await uploadTask;
-
+  
         // Get the download URL for the uploaded file
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-
-        // Return an object with name and url properties
-        return { name: filename, url: downloadURL };
+  
+        // Return an object with name, url, and id properties
+        return { id: uniqueId, name: originalFileName, url: downloadURL };
       });
-
+  
       // Wait for all file uploads to complete
       const newFiles = await Promise.all(fileUploadPromises);
-
+  
       // Display a success message
       setLoading(false);
-
-      // Overwrite previous files with new files
+  
+      // Append new files to the existing files
       setFormData((prevData: any) => ({
         ...prevData,
-        files: [...prevData.files, ...newFiles],
+        [e.target.name]: [...prevData[e.target.name], ...newFiles],
       }));
-
+  
       toast.success("Files uploaded successfully");
     }
   };
+  
+  const handleFileDelete = async (fileId: string) => {
+    console.log('first1',fileId)
+    try {
+      // Find the file with the specified fileId
+      const fileToDelete = formData.sourceFiles.find((file: any) => file.id === fileId);
+      console.log('first2',fileToDelete)
+  
+      if (fileToDelete) {
+        // Delete the file from Firebase Storage
+        const storageRef = ref(storage, `files/${fileToDelete.id}`);
+        await deleteObject(storageRef);
+  
+        // Remove the file from the state
+        setFormData((prevData: any) => ({
+          ...prevData,
+          sourceFiles: prevData.sourceFiles.filter((file: any) => file.id !== fileId),
+        }));
+  
+        // TODO: Update the task collection to remove the file link
+        // You need to implement this part based on your data model and Firestore structure
+        // ...
+  
+        toast.success("File deleted successfully");
+      } else {
+        console.error("File not found for deletion");
+      }
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      toast.error("Error deleting file");
+    }
+  };
+    
   const storage = getStorage();
   const getData = async () => {
     try {
@@ -250,17 +287,17 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       const counterDocRef = doc(db, "counters", "jobCounter");
       const counterDocSnap = await getDoc(counterDocRef);
       let lastJobNumber = 1;
-  
+
       if (counterDocSnap.exists()) {
         lastJobNumber = counterDocSnap.data().lastJobNumber || 1;
       }
-  
+
       // Construct the new title ID
       const newJobNumber = lastJobNumber + 1;
       const newTitleId = `MS-JOB${String(newJobNumber).padStart(5, "0")}`;
-  
+
       const { ...formDataWithoutFiles } = formData;
-  
+
       // If updating an existing task
       if (sidebarOpen?.id?.length > 1) {
         await updateDocById(sidebarOpen.id, {
@@ -276,19 +313,19 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
           startDate: addValueTime().startTime,
           titleId: newTitleId,
         });
-  
+
         // Update the task document with the newly created ID
         await updateDoc(docRef, {
           docId: docRef.id,
         });
       }
-  
+
       // Update the job counter
       await setDoc(counterDocRef, { lastJobNumber: newJobNumber });
-  
+
       updateTaskData();
       setLoading(false);
-  
+
       // Close the modal
       setSidebarOpen((prevSidebarState) => ({
         ...prevSidebarState,
@@ -453,8 +490,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         className="ml-5 border my-1"
                                       />
                                     </label>
-                                  </div>
-                                  <div className="w-full flex flex-col gap-y-[20px] ">
                                     <label className="w-full flex">
                                       Employee to be assigned:
                                       <select
@@ -478,7 +513,10 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         {/* Add more options as needed */}
                                       </select>
                                     </label>
-                                    <label className="w-full flex">
+                                  </div>
+                                  <div className="w-full flex flex-col gap-y-[20px] ">
+                                 
+                                    {/* <label className="w-full flex">
                                       Start Date/Time:
                                       <input
                                         type="datetime-local"
@@ -498,7 +536,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         onChange={handleInputChange}
                                         className="ml-5 border my-1"
                                       />
-                                    </label>
+                                    </label> */}
 
                                     <label className="w-full flex">
                                       Deadline :
@@ -514,11 +552,60 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                     {/* Other form fields go here */}
                                     {/* ... */}
 
-                                    <label className="w-full flex items-center">
-                                      Files:
+                                  { !isFieldDisabled() &&  <label className="w-full flex items-center">
+                                      Source Files:
                                       <input
                                         type="file"
-                                        name="files"
+                                        name="sourceFiles"
+                                        onChange={handleFileUpload}
+                                        multiple
+                                        className="ml-5 border my-1 opacity-0 h-8 w-8"
+                                        accept=".pdf,.doc,.docx,.ppt,.pptx"
+                                        disabled={isFieldDisabled()}
+                                      />
+                                      <span className="border text-[16px]  p-1 cursor-pointer hover:bg-gray-200 rounded-lg">
+                                        {/* Customize the appearance of the label */}
+                                        Choose Files
+                                      </span>
+                                    </label>}
+                                    {formData.sourceFiles.length > 0 && (
+                                      <div className="flex gap-x-[20px]">
+                                        <p>Source  Files:</p>
+                                        <ul>
+                                          {formData.sourceFiles.map((file, index) => (
+                                            <li
+                                              key={index}
+                                              className="flex items-center"
+                                            >
+                                              <a
+                                                href={file.url} // Assuming 'url' is the property containing the file URL
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="file-link hover:underline hover:text-blue-500"
+                                              >
+                                                {file.name}
+                                              </a>
+                                              {!isFieldDisabled() && <TrashIcon
+                                                title="Delete task"
+                                                style={{
+                                                  height: "25px",
+                                                  width: "25px",
+                                                  cursor: "pointer",
+                                                }}
+                                                
+                                                className="hover:bg-red-500 rounded-full p-1"
+                                                onClick={() => handleFileDelete(file.id)}
+                                              />}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                            <label className="w-full flex items-center">
+                                      Submit  Files:
+                                      <input
+                                        type="file"
+                                        name="submitFiles"
                                         onChange={handleFileUpload}
                                         multiple
                                         className="ml-5 border my-1 opacity-0 h-8 w-8"
@@ -530,12 +617,15 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         Choose Files
                                       </span>
                                     </label>
-                                    {formData.files.length > 0 && (
+                                    {formData.sourceFiles.length > 0 && (
                                       <div className="flex gap-x-[20px]">
-                                        <p>Uploaded Files:</p>
+                                        <p>Submitted  Files:</p>
                                         <ul>
-                                          {formData.files.map((file, index) => (
-                                            <li key={index}>
+                                          {formData?.submitFiles.map((file, index) => (
+                                            <li
+                                              key={index}
+                                              className="flex items-center"
+                                            >
                                               <a
                                                 href={file.url} // Assuming 'url' is the property containing the file URL
                                                 target="_blank"
@@ -544,6 +634,16 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                               >
                                                 {file.name}
                                               </a>
+                                              <TrashIcon
+                                                title="Delete task"
+                                                style={{
+                                                  height: "25px",
+                                                  width: "25px",
+                                                  cursor: "pointer",
+                                                }}
+                                                className="hover:bg-red-500 rounded-full p-1"
+                                                onClick={() => handleFileDelete(file.id)}
+                                              />
                                             </li>
                                           ))}
                                         </ul>

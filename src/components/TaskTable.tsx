@@ -80,11 +80,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
       minute: "numeric",
       hour12: true,
     };
+    const isEditIconVisible = element.endDate
+    ? new Date(element.endDate).getTime() + 60 * 30 * 1000 > new Date().getTime()
+    : true;
     const formatDownloadLink = (link: fileType[] | string | number) => {
 
       return (
         <ul>
-        {(link as fileType[]).map((file: fileType, index: number) => (
+        {(link as fileType[])?.map((file: fileType, index: number) => (
           <li key={index}>
             <a
               href={file.url} // Assuming 'url' is the property containing the file URL
@@ -138,7 +141,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
           {element.numberOfSlides}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
-          {formatDownloadLink(element.files)}
+          {formatDownloadLink(element.sourceFiles )}
+        </td>
+        <td className="px-3 py-4 whitespace-nowrap border-r">
+          {formatDownloadLink(element.submitFiles )}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDateTime(element.startDate)}
@@ -171,7 +177,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
               }
             />
           )}
-          <PencilSquareIcon
+       { isEditIconVisible &&   <PencilSquareIcon
             title="Edit task"
             style={{ height: "30px", width: "30px", cursor: "pointer" }}
             className="hover:bg-green-500 rounded-full p-1"
@@ -182,7 +188,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                 id: element?.docId?.toString(), // Ensure id is treated as a string
               }))
             }
-          />
+          />}
         </td>
       </tr>
     );
@@ -195,7 +201,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
     "P.P",
     "Job Status",
     "Slides",
-    "Files",
+    "Source Files",
+    "Submitted Files",
     "Start Date",
     "End Date",
     "Deadline",
@@ -217,7 +224,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
             {tableHeaders.map((header, index) => (
               <th
                 key={index}
-                className="px-2 py-2 border-r-2 border-gray-300 text-center text-md font-medium text-gray-500 uppercase tracking-wider"
+                className="px-2 py-4 border-r-2 border-gray-300 text-center text-md font-medium text-gray-500 uppercase tracking-wider"
               >
                 {header}
               </th>
