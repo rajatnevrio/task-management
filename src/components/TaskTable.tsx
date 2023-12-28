@@ -15,7 +15,10 @@ import CountdownTimer from "./CountDownTimer/CountDownTimer";
 interface Task {
   [key: string]: string | number; // Adjust the type according to your task structure
 }
-
+interface fileType {
+  name: string,
+  url :string
+}
 interface TaskTableProps {
   taskArray: Task[];
   setSidebarOpen: Dispatch<SetStateAction<{ isOpen: boolean; id: string }>>;
@@ -64,7 +67,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
     }
   };
 
-  const tableRows = taskArray.map((element) => {
+  const tableRows = taskArray.map((element,index) => {
     const timestamp = element.createdAt;
     const date = new Date(Number(timestamp) * 1000);
 
@@ -77,18 +80,17 @@ const TaskTable: React.FC<TaskTableProps> = ({
       minute: "numeric",
       hour12: true,
     };
-    const formatDownloadLink = (link: any) => {
-      // Display only the first 30 characters of the link
-      const shortenedLink =
-        link.length > 25 ? link.substring(0, 20) + "..." : link;
+    const formatDownloadLink = (link: fileType[] | string | number) => {
+
       return (
         <ul>
-        {link.map((file:any, index:any) => (
+        {(link as fileType[]).map((file: fileType, index: number) => (
           <li key={index}>
             <a
               href={file.url} // Assuming 'url' is the property containing the file URL
               target="_blank"
               rel="noopener noreferrer"
+              className="file-link hover:underline hover:text-blue-500"
             >
               {file.name},
             </a>
@@ -118,9 +120,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
       return date.toLocaleString("en-US", options);
     };
     return (
-      <tr className="items text-md text-center">
+      <tr className="items text-md text-center" key={index}>
         <td className="px-3 py-4 whitespace-nowrap border-r">
-          {element.title}
+          {element.titleId}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {element.typeOfWork}
@@ -187,10 +189,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
   });
   const data: Task[] = React.useMemo(() => taskArray, [taskArray]);
   const tableHeaders: string[] = [
-    "Title",
+    "TitleId",
     "Type",
     "Assignee",
-    "PP",
+    "P.P",
     "Job Status",
     "Slides",
     "Files",

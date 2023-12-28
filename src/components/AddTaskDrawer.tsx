@@ -56,7 +56,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   userDetails,
 }) => {
   const [formData, setFormData] = useState({
-    title: "",
+    // title: "",
     numberOfSlides: 1,
     typeOfWork: "",
     pp: 1,
@@ -214,7 +214,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       // Overwrite previous files with new files
       setFormData((prevData: any) => ({
         ...prevData,
-        files: newFiles,
+        files: [...prevData.files, ...newFiles],
       }));
 
       toast.success("Files uploaded successfully");
@@ -246,23 +246,49 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     e.preventDefault();
     setLoading(true);
     try {
+      // Fetch the current job counter
+      const counterDocRef = doc(db, "counters", "jobCounter");
+      const counterDocSnap = await getDoc(counterDocRef);
+      let lastJobNumber = 1;
+  
+      if (counterDocSnap.exists()) {
+        lastJobNumber = counterDocSnap.data().lastJobNumber || 1;
+      }
+  
+      // Construct the new title ID
+      const newJobNumber = lastJobNumber + 1;
+      const newTitleId = `MS-JOB${String(newJobNumber).padStart(5, "0")}`;
+  
       const { ...formDataWithoutFiles } = formData;
+  
+      // If updating an existing task
       if (sidebarOpen?.id?.length > 1) {
         await updateDocById(sidebarOpen.id, {
           ...formDataWithoutFiles,
+          titleId: newTitleId,
         });
       } else {
+        // If adding a new task
         const docRef = await addDoc(collection(db, "tasks"), {
           ...formDataWithoutFiles,
           createdAt: serverTimestamp(),
-          timer: addValueTime(),
+          timer: addValueTime().timer,
+          startDate: addValueTime().startTime,
+          titleId: newTitleId,
         });
+  
+        // Update the task document with the newly created ID
         await updateDoc(docRef, {
           docId: docRef.id,
         });
       }
+  
+      // Update the job counter
+      await setDoc(counterDocRef, { lastJobNumber: newJobNumber });
+  
       updateTaskData();
       setLoading(false);
+  
       // Close the modal
       setSidebarOpen((prevSidebarState) => ({
         ...prevSidebarState,
@@ -272,7 +298,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     } catch (error: any) {
       toast.error(error);
       setLoading(false);
-
       console.error("Error handling form submission:", error);
     }
   };
@@ -343,7 +368,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                               <form onSubmit={handleSubmit}>
                                 <div className="mt-2 flex flex-col grid grid-cols-2 gap-4 items-start">
                                   <div className="w-full flex flex-col gap-y-[20px]">
-                                    <label className="w-full flex">
+                                    {/* <label className="w-full flex">
                                       Task Title:
                                       <input
                                         name="title"
@@ -353,7 +378,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         className="ml-5 border "
                                         disabled={isFieldDisabled()}
                                       />
-                                    </label>
+                                    </label> */}
                                     <label className="w-full flex">
                                       Number of Slides:
                                       <input
@@ -500,13 +525,13 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         accept=".pdf,.doc,.docx,.ppt,.pptx"
                                         disabled={isFieldDisabled()}
                                       />
-                                      <span className="border text-[16px]  p-1">
+                                      <span className="border text-[16px]  p-1 cursor-pointer hover:bg-gray-200 rounded-lg">
                                         {/* Customize the appearance of the label */}
                                         Choose Files
                                       </span>
                                     </label>
                                     {formData.files.length > 0 && (
-                                      <div>
+                                      <div className="flex gap-x-[20px]">
                                         <p>Uploaded Files:</p>
                                         <ul>
                                           {formData.files.map((file, index) => (
@@ -515,6 +540,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                                 href={file.url} // Assuming 'url' is the property containing the file URL
                                                 target="_blank"
                                                 rel="noopener noreferrer"
+                                                className="file-link hover:underline hover:text-blue-500"
                                               >
                                                 {file.name}
                                               </a>
@@ -542,14 +568,14 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                   <button
                                     title="Submit"
                                     type="submit"
-                                    onClick={() => {
-                                      if (formData.jobStatus === "inprogress")
-                                        setFormData((prevData: any) => ({
-                                          ...prevData,
-                                          timer: addValueTime().timer,
-                                          startDate: addValueTime().startTime,
-                                        }));
-                                    }}
+                                    // onClick={() => {
+                                    //   if (formData.jobStatus === "inprogress")
+                                    //     setFormData((prevData: any) => ({
+                                    //       ...prevData,
+                                    //       timer: addValueTime().timer,
+                                    //       startDate: addValueTime().startTime,
+                                    //     }));
+                                    // }}
                                     className=" w-[50%] mt-8 justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                   >
                                     {sidebarOpen?.id?.length > 1

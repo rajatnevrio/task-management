@@ -32,6 +32,7 @@ const ShowCounter: React.FC<ShowCounterProps> = ({
             <>
               <DateTimeDisplay
                 value={days.toString()}
+                dateType={'days'}
                 type={""}
                 isDanger={days <= 3}
               />
@@ -42,6 +43,7 @@ const ShowCounter: React.FC<ShowCounterProps> = ({
             <>
               <DateTimeDisplay
                 value={hours.toString()}
+                dateType={'hours'}
                 type={""}
                 isDanger={hours <= 3}
               />
@@ -52,6 +54,7 @@ const ShowCounter: React.FC<ShowCounterProps> = ({
             <>
               <DateTimeDisplay
                 value={minutes.toString()}
+                dateType={'minutes'}
                 type={""}
                 isDanger={minutes <= 3}
               />
@@ -60,6 +63,7 @@ const ShowCounter: React.FC<ShowCounterProps> = ({
           )}
           <DateTimeDisplay
             value={seconds.toString()}
+            dateType={'seconds'}
             type={"left"}
             isDanger={false}
           />
@@ -71,6 +75,7 @@ const ShowCounter: React.FC<ShowCounterProps> = ({
             <>
               <DateTimeDisplay
                 value={Math.abs(days).toString()}
+                dateType={'days'}
                 type={""}
                 isDanger={days <= 3}
               />
@@ -81,6 +86,7 @@ const ShowCounter: React.FC<ShowCounterProps> = ({
             <>
               <DateTimeDisplay
                 value={Math.abs(hours).toString()}
+                dateType={'hours'}
                 type={""}
                 isDanger={hours <= 3}
               />
@@ -91,6 +97,7 @@ const ShowCounter: React.FC<ShowCounterProps> = ({
             <>
               <DateTimeDisplay
                 value={Math.abs(minutes).toString()}
+                dateType={'minutes'}
                 type={""}
                 isDanger={minutes <= 3}
               />
@@ -99,6 +106,7 @@ const ShowCounter: React.FC<ShowCounterProps> = ({
           )}
           <DateTimeDisplay
             value={Math.abs(seconds).toString()}
+            dateType={'seconds'}
             type={"delay"}
             isDanger={false}
           />
