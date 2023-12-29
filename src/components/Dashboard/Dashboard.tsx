@@ -118,7 +118,7 @@ const Dashboard = () => {
               </button>
             )}
           </div>
-          <div className=" overflow-y-auto">
+          <div className=" overflow-x-auto pr-[25px]">
             <TaskTable
               taskArray={taskArray}
               setSidebarOpen={setSidebarOpen}

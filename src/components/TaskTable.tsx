@@ -81,7 +81,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       hour12: true,
     };
     const isEditIconVisible = element.endDate
-    ? new Date(element.endDate).getTime() + 60 * 30 * 1000 > new Date().getTime()
+    ? (new Date(element.endDate).getTime() + 60 * 30 * 1000 > new Date().getTime()) || currentUser.role === "admin"
     : true;
     const formatDownloadLink = (link: fileType[] | string | number) => {
 

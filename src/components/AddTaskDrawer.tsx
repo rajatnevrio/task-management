@@ -617,7 +617,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         Choose Files
                                       </span>
                                     </label>
-                                    {formData.sourceFiles.length > 0 && (
+                                    {formData.submitFiles.length > 0 && (
                                       <div className="flex gap-x-[20px]">
                                         <p>Submitted  Files:</p>
                                         <ul>
