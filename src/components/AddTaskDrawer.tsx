@@ -13,12 +13,14 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
 import { Dialog, Transition } from "@headlessui/react";
-import { CheckIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { CheckIcon, TrashIcon, PlusIcon,CheckBadgeIcon } from "@heroicons/react/24/outline";
 import { DocumentData } from "@firebase/firestore-types";
 
 import { db } from "../firebase/firebase";
@@ -65,14 +67,17 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     startDate: "",
     endDate: "",
     deadline: "",
-    sourceFiles: [] as { name: string; url: string ,id:string }[],
-    submitFiles: [] as { name: string; url: string ,id:string }[],
+    sourceFiles: [] as { name: string; url: string; id: string }[],
+    submitFiles: [] as { name: string; url: string; id: string }[],
     instructions: "",
     jobStatus: "unassigned",
     timer: "",
   });
   const [list, setList] = useState<rolesApi[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [typesOfJobs, setTypesOfJobs] = useState<string[]>([]);
+  const [addingNewTypeOfWork, setAddingNewTypeOfWork] = useState(false);
+  const [newTypeOfWork, setNewTypeOfWork] = useState('')
   const { getUserRoles, currentUser } = useAuth();
   const formattedDate = (date: any) => {
     const year = date.getFullYear();
@@ -89,10 +94,17 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+
+
+    if (name === "newTypeOfWork") {
+      setNewTypeOfWork(value);
+    } else {
+      // For other inputs, update the formData state
+      setFormData((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
+    }
     if (name === "jobStatus" && value === "inprogress") {
       const currentDate = new Date();
       // Construct the ISO-like string
@@ -133,6 +145,13 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         startDate: "",
         endDate: "",
         timer: "",
+      }));
+    }
+    if (name === "employeeAssigned") {
+      // If yes, automatically set the "jobStatus" to "notstarted"
+      setFormData((prevData) => ({
+        ...prevData,
+        jobStatus: "notstarted",
       }));
     }
   };
@@ -188,7 +207,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   const isFieldDisabled = () => userDetails?.role === "employee";
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoading(true);
-  console.log('first12',e.target)
+    console.log("first12", e.target);
     const files = e.target.files;
     if (files && files.length > 0) {
       const fileUploadPromises = Array.from(files).map(async (file: File) => {
@@ -198,55 +217,59 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         const filename = `${uniqueId}`;
         const storageRef = ref(storage, `files/${filename}`);
         const uploadTask = uploadBytesResumable(storageRef, file);
-  
+
         // Wait for the upload to complete
         await uploadTask;
-  
+
         // Get the download URL for the uploaded file
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-  
+
         // Return an object with name, url, and id properties
         return { id: uniqueId, name: originalFileName, url: downloadURL };
       });
-  
+
       // Wait for all file uploads to complete
       const newFiles = await Promise.all(fileUploadPromises);
-  
+
       // Display a success message
       setLoading(false);
-  
+
       // Append new files to the existing files
       setFormData((prevData: any) => ({
         ...prevData,
         [e.target.name]: [...prevData[e.target.name], ...newFiles],
       }));
-  
+
       toast.success("Files uploaded successfully");
     }
   };
-  
+
   const handleFileDelete = async (fileId: string) => {
-    console.log('first1',fileId)
+    console.log("first1", fileId);
     try {
       // Find the file with the specified fileId
-      const fileToDelete = formData.sourceFiles.find((file: any) => file.id === fileId);
-      console.log('first2',fileToDelete)
-  
+      const fileToDelete = formData.sourceFiles.find(
+        (file: any) => file.id === fileId
+      );
+      console.log("first2", fileToDelete);
+
       if (fileToDelete) {
         // Delete the file from Firebase Storage
         const storageRef = ref(storage, `files/${fileToDelete.id}`);
         await deleteObject(storageRef);
-  
+
         // Remove the file from the state
         setFormData((prevData: any) => ({
           ...prevData,
-          sourceFiles: prevData.sourceFiles.filter((file: any) => file.id !== fileId),
+          sourceFiles: prevData.sourceFiles.filter(
+            (file: any) => file.id !== fileId
+          ),
         }));
-  
+
         // TODO: Update the task collection to remove the file link
         // You need to implement this part based on your data model and Firestore structure
         // ...
-  
+
         toast.success("File deleted successfully");
       } else {
         console.error("File not found for deletion");
@@ -256,7 +279,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       toast.error("Error deleting file");
     }
   };
-    
+
   const storage = getStorage();
   const getData = async () => {
     try {
@@ -272,13 +295,50 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       // Handle error accordingly, e.g., show an error message to the user
     }
   };
+  const fetchTypesOfJobs = async () => {
+    try {
+      const typesOfJobsCollection = collection(db, "typesOfJobs");
+      const q = query(typesOfJobsCollection);
+
+      const querySnapshot = await getDocs(q);
+
+      const jobs = querySnapshot.docs.map((doc) => doc.data().jobType);
+      console.log("first3e", jobs);
+      setTypesOfJobs(jobs);
+    } catch (error) {
+      console.error("Error fetching types of jobs:", error);
+      // Handle error accordingly
+    }
+  };
 
   useEffect(() => {
     if (sidebarOpen?.id?.length > 1) {
       getDocById(sidebarOpen.id);
     }
     getData();
+    fetchTypesOfJobs();
   }, []);
+  const handleTickButtonClick = async () => {
+    // Step 2: Handle tick button click to add the new type of work to typesOfJobs
+    if (newTypeOfWork.trim() !== "") {
+      // Add the new type of work to the Firebase collection
+      try {
+        setLoading(true)
+        const typesOfJobsCollection = collection(db, "typesOfJobs");
+        await addDoc(typesOfJobsCollection, { jobType: newTypeOfWork.trim() });
+      } catch (error) {
+        console.error("Error adding new type of work:", error);
+        setLoading(false)
+        // Handle error accordingly
+      }
+
+      setTypesOfJobs((prevTypes) => [...prevTypes, newTypeOfWork.trim()]);
+      setNewTypeOfWork(""); // Clear the input field after adding
+      setAddingNewTypeOfWork(false); // Stop adding a new type of work
+      setLoading(false)
+
+    }
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -286,7 +346,18 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       // Fetch the current job counter
       const counterDocRef = doc(db, "counters", "jobCounter");
       const counterDocSnap = await getDoc(counterDocRef);
-      let lastJobNumber = 1;
+      
+
+      const { ...formDataWithoutFiles } = formData;
+
+      // If updating an existing task
+      if (sidebarOpen?.id?.length > 1) {
+        await updateDocById(sidebarOpen.id, {
+          ...formDataWithoutFiles,
+          // titleId: newTitleId,
+        });
+      } else {
+        let lastJobNumber = 1;
 
       if (counterDocSnap.exists()) {
         lastJobNumber = counterDocSnap.data().lastJobNumber || 1;
@@ -295,22 +366,12 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       // Construct the new title ID
       const newJobNumber = lastJobNumber + 1;
       const newTitleId = `MS-JOB${String(newJobNumber).padStart(5, "0")}`;
-
-      const { ...formDataWithoutFiles } = formData;
-
-      // If updating an existing task
-      if (sidebarOpen?.id?.length > 1) {
-        await updateDocById(sidebarOpen.id, {
-          ...formDataWithoutFiles,
-          titleId: newTitleId,
-        });
-      } else {
         // If adding a new task
         const docRef = await addDoc(collection(db, "tasks"), {
           ...formDataWithoutFiles,
           createdAt: serverTimestamp(),
-          timer: addValueTime().timer,
-          startDate: addValueTime().startTime,
+          // timer: addValueTime().timer,
+          // startDate: addValueTime().startTime,
           titleId: newTitleId,
         });
 
@@ -318,10 +379,11 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         await updateDoc(docRef, {
           docId: docRef.id,
         });
+      await setDoc(counterDocRef, { lastJobNumber: newJobNumber });
+
       }
 
       // Update the job counter
-      await setDoc(counterDocRef, { lastJobNumber: newJobNumber });
 
       updateTaskData();
       setLoading(false);
@@ -430,26 +492,68 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       />
                                     </label>
 
-                                    <label className="w-full flex">
+                                    <label className="w-full flex items-center">
                                       Type of Work:
-                                      <select
-                                        name="typeOfWork"
-                                        value={formData.typeOfWork}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="ml-5 border my-1"
-                                        disabled={isFieldDisabled()}
-                                      >
-                                        {/* Dynamic values for Type of Work */}
-                                        <option value="">
-                                          Select Type of Work
-                                        </option>
-                                        <option value="design">Design</option>
-                                        <option value="development">
-                                          Development
-                                        </option>
-                                        {/* Add more options as needed */}
-                                      </select>
+                                      {addingNewTypeOfWork ? ( // Step 5: Show input field and tick button when adding a new type of work
+                                        <>
+                                          <input
+                                            type="text"
+                                            name="newTypeOfWork"
+                                            value={newTypeOfWork}
+                                            onChange={handleInputChange}
+                                            className="ml-5 border my-1"
+                                            placeholder="Enter new type of work"
+                                          />
+                                          
+                                          <button
+                                            type="button"
+                                            className="ml-2 hover:bg-green-500 hover:text-white text-black px-2 py-1 rounded"
+                                            onClick={handleTickButtonClick}
+                                          >
+                                            ✓
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="ml-2 hover:bg-red-500 hover:text-white text-black px-2 py-1 rounded"
+                                            onClick={()=> setAddingNewTypeOfWork(false)}
+                                          >
+                                            x
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <select
+                                            name="typeOfWork"
+                                            value={formData.typeOfWork}
+                                            onChange={handleInputChange}
+                                            required
+                                            className="ml-5 border my-1"
+                                            disabled={isFieldDisabled()}
+                                          >
+                                            { formData.typeOfWork ==="" && <option value="">
+                                              Select Type of Work
+                                            </option>}
+                                            {typesOfJobs.map((jobType) => (
+                                              <option
+                                                key={jobType}
+                                                value={jobType}
+                                              >
+                                                {jobType}
+                                              </option>
+                                            ))}
+                                          </select>
+                                          {  !isFieldDisabled() && <PlusIcon
+                                            title="Add job"
+                                            style={{
+                                              height: "30px",
+                                              width: "30px",
+                                              cursor: "pointer",
+                                            }}
+                                            className="hover:bg-blue-500  hover:text-white rounded-full p-1 ml-2"
+                                            onClick={()=>{setAddingNewTypeOfWork(true)}}
+                                          />}
+                                        </>
+                                      )}
                                     </label>
                                     <label className="w-full flex">
                                       Job Status:
@@ -459,9 +563,9 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         onChange={handleInputChange}
                                         className="ml-5 border my-1"
                                       >
-                                        <option value="unassigned">
+                                        { !isFieldDisabled() && <option value="unassigned">
                                           Unassigned
-                                        </option>
+                                        </option>}
                                         <option value="notstarted">
                                           Not Started
                                         </option>
@@ -515,7 +619,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                     </label>
                                   </div>
                                   <div className="w-full flex flex-col gap-y-[20px] ">
-                                 
                                     {/* <label className="w-full flex">
                                       Start Date/Time:
                                       <input
@@ -552,57 +655,64 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                     {/* Other form fields go here */}
                                     {/* ... */}
 
-                                  { !isFieldDisabled() &&  <label className="w-full flex items-center">
-                                      Source Files:
-                                      <input
-                                        type="file"
-                                        name="sourceFiles"
-                                        onChange={handleFileUpload}
-                                        multiple
-                                        className="ml-5 border my-1 opacity-0 h-8 w-8"
-                                        accept=".pdf,.doc,.docx,.ppt,.pptx"
-                                        disabled={isFieldDisabled()}
-                                      />
-                                      <span className="border text-[16px]  p-1 cursor-pointer hover:bg-gray-200 rounded-lg">
-                                        {/* Customize the appearance of the label */}
-                                        Choose Files
-                                      </span>
-                                    </label>}
+                                    {!isFieldDisabled() && (
+                                      <label className="w-full flex items-center">
+                                        Source Files:
+                                        <input
+                                          type="file"
+                                          name="sourceFiles"
+                                          onChange={handleFileUpload}
+                                          multiple
+                                          className="ml-5 border my-1 opacity-0 h-8 w-8"
+                                          accept=".pdf,.doc,.docx,.ppt,.pptx"
+                                          disabled={isFieldDisabled()}
+                                        />
+                                        <span className="border text-[16px]  p-1 cursor-pointer hover:bg-gray-200 rounded-lg">
+                                          {/* Customize the appearance of the label */}
+                                          Choose Files
+                                        </span>
+                                      </label>
+                                    )}
                                     {formData.sourceFiles.length > 0 && (
                                       <div className="flex gap-x-[20px]">
-                                        <p>Source  Files:</p>
+                                        <p>Source Files:</p>
                                         <ul>
-                                          {formData.sourceFiles.map((file, index) => (
-                                            <li
-                                              key={index}
-                                              className="flex items-center"
-                                            >
-                                              <a
-                                                href={file.url} // Assuming 'url' is the property containing the file URL
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="file-link hover:underline hover:text-blue-500"
+                                          {formData.sourceFiles.map(
+                                            (file, index) => (
+                                              <li
+                                                key={index}
+                                                className="flex items-center"
                                               >
-                                                {file.name}
-                                              </a>
-                                              {!isFieldDisabled() && <TrashIcon
-                                                title="Delete task"
-                                                style={{
-                                                  height: "25px",
-                                                  width: "25px",
-                                                  cursor: "pointer",
-                                                }}
-                                                
-                                                className="hover:bg-red-500 rounded-full p-1"
-                                                onClick={() => handleFileDelete(file.id)}
-                                              />}
-                                            </li>
-                                          ))}
+                                                <a
+                                                  href={file.url} // Assuming 'url' is the property containing the file URL
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="file-link hover:underline hover:text-blue-500"
+                                                >
+                                                  {file.name}
+                                                </a>
+                                                {!isFieldDisabled() && (
+                                                  <TrashIcon
+                                                    title="Delete task"
+                                                    style={{
+                                                      height: "25px",
+                                                      width: "25px",
+                                                      cursor: "pointer",
+                                                    }}
+                                                    className="hover:bg-red-500 rounded-full p-1"
+                                                    onClick={() =>
+                                                      handleFileDelete(file.id)
+                                                    }
+                                                  />
+                                                )}
+                                              </li>
+                                            )
+                                          )}
                                         </ul>
                                       </div>
                                     )}
-                                            <label className="w-full flex items-center">
-                                      Submit  Files:
+                                    <label className="w-full flex items-center">
+                                      Submit Files:
                                       <input
                                         type="file"
                                         name="submitFiles"
@@ -619,33 +729,37 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                     </label>
                                     {formData.submitFiles.length > 0 && (
                                       <div className="flex gap-x-[20px]">
-                                        <p>Submitted  Files:</p>
+                                        <p>Submitted Files:</p>
                                         <ul>
-                                          {formData?.submitFiles.map((file, index) => (
-                                            <li
-                                              key={index}
-                                              className="flex items-center"
-                                            >
-                                              <a
-                                                href={file.url} // Assuming 'url' is the property containing the file URL
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="file-link hover:underline hover:text-blue-500"
+                                          {formData?.submitFiles.map(
+                                            (file, index) => (
+                                              <li
+                                                key={index}
+                                                className="flex items-center"
                                               >
-                                                {file.name}
-                                              </a>
-                                              <TrashIcon
-                                                title="Delete task"
-                                                style={{
-                                                  height: "25px",
-                                                  width: "25px",
-                                                  cursor: "pointer",
-                                                }}
-                                                className="hover:bg-red-500 rounded-full p-1"
-                                                onClick={() => handleFileDelete(file.id)}
-                                              />
-                                            </li>
-                                          ))}
+                                                <a
+                                                  href={file.url} // Assuming 'url' is the property containing the file URL
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="file-link hover:underline hover:text-blue-500"
+                                                >
+                                                  {file.name}
+                                                </a>
+                                                <TrashIcon
+                                                  title="Delete task"
+                                                  style={{
+                                                    height: "25px",
+                                                    width: "25px",
+                                                    cursor: "pointer",
+                                                  }}
+                                                  className="hover:bg-red-500 rounded-full p-1"
+                                                  onClick={() =>
+                                                    handleFileDelete(file.id)
+                                                  }
+                                                />
+                                              </li>
+                                            )
+                                          )}
                                         </ul>
                                       </div>
                                     )}

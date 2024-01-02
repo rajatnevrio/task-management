@@ -16,8 +16,8 @@ interface Task {
   [key: string]: string | number; // Adjust the type according to your task structure
 }
 interface fileType {
-  name: string,
-  url :string
+  name: string;
+  url: string;
 }
 interface TaskTableProps {
   taskArray: Task[];
@@ -67,7 +67,15 @@ const TaskTable: React.FC<TaskTableProps> = ({
     }
   };
 
-  const tableRows = taskArray.map((element,index) => {
+  const sortedTaskArray = [...taskArray].sort((a, b) => {
+    // Extract the numeric part from the titleId and convert to numbers for comparison
+    const aTitleIdNumber = parseInt((a.titleId as string).slice(6), 10);
+    const bTitleIdNumber = parseInt((b.titleId as string).slice(6), 10);
+
+    return bTitleIdNumber - aTitleIdNumber;
+  });
+
+  const tableRows = sortedTaskArray.map((element, index) => {
     const timestamp = element.createdAt;
     const date = new Date(Number(timestamp) * 1000);
 
@@ -81,25 +89,25 @@ const TaskTable: React.FC<TaskTableProps> = ({
       hour12: true,
     };
     const isEditIconVisible = element.endDate
-    ? (new Date(element.endDate).getTime() + 60 * 30 * 1000 > new Date().getTime()) || currentUser.role === "admin"
-    : true;
+      ? new Date(element.endDate).getTime() + 60 * 30 * 1000 >
+          new Date().getTime() || currentUser.role === "admin"
+      : true;
     const formatDownloadLink = (link: fileType[] | string | number) => {
-
       return (
         <ul>
-        {(link as fileType[])?.map((file: fileType, index: number) => (
-          <li key={index}>
-            <a
-              href={file.url} // Assuming 'url' is the property containing the file URL
-              target="_blank"
-              rel="noopener noreferrer"
-              className="file-link hover:underline hover:text-blue-500"
-            >
-              {file.name},
-            </a>
-          </li>
-        ))}
-      </ul>
+          {(link as fileType[])?.map((file: fileType, index: number) => (
+            <li key={index}>
+              <a
+                href={file.url} // Assuming 'url' is the property containing the file URL
+                target="_blank"
+                rel="noopener noreferrer"
+                className="file-link hover:underline hover:text-blue-500"
+              >
+                {file.name},
+              </a>
+            </li>
+          ))}
+        </ul>
       );
     };
 
@@ -141,10 +149,10 @@ const TaskTable: React.FC<TaskTableProps> = ({
           {element.numberOfSlides}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
-          {formatDownloadLink(element.sourceFiles )}
+          {formatDownloadLink(element.sourceFiles)}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
-          {formatDownloadLink(element.submitFiles )}
+          {formatDownloadLink(element.submitFiles)}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDateTime(element.startDate)}
@@ -177,18 +185,26 @@ const TaskTable: React.FC<TaskTableProps> = ({
               }
             />
           )}
-       { isEditIconVisible &&   <PencilSquareIcon
-            title="Edit task"
-            style={{ height: "30px", width: "30px", cursor: "pointer" }}
-            className="hover:bg-green-500 rounded-full p-1"
-            onClick={() =>
-              setSidebarOpen((prevSidebarState) => ({
-                ...prevSidebarState,
-                isOpen: true,
-                id: element?.docId?.toString(), // Ensure id is treated as a string
-              }))
-            }
-          />}
+          {isEditIconVisible ? (
+            <PencilSquareIcon
+              title="Edit task"
+              style={{ height: "30px", width: "30px", cursor: "pointer" }}
+              className="hover:bg-green-500 rounded-full p-1"
+              onClick={() =>
+                setSidebarOpen((prevSidebarState) => ({
+                  ...prevSidebarState,
+                  isOpen: true,
+                  id: element?.docId?.toString(), // Ensure id is treated as a string
+                }))
+              }
+            />
+          ) : (
+            <PencilSquareIcon
+              title="No editing allowed 30 minutes after the end time"
+              style={{ height: "30px", width: "30px" }}
+              className="hover:bg-gray-300 rounded-full p-1 cursor-no-drop"
+            />
+          )}
         </td>
       </tr>
     );
