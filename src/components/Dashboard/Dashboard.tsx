@@ -47,7 +47,7 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const querySnapshot =
-        currentUser.role === "admin"
+        currentUser.role === "admin" || "task-creator"
           ? await getDocs(taskCollection)
           : await getDocs(
               query(taskCollection, where("employeeAssigned", "==", `${name2}`))
@@ -102,7 +102,7 @@ const Dashboard = () => {
             <span className=" flex items-center justify-center text-4xl font-semibold">
               Job Assignment
             </span>
-            {currentUser.role === "admin" && (
+            {(currentUser.role === "admin" || currentUser.role === "task-creator") && (
               <button
                 title="Create Job"
                 onClick={() => {

@@ -90,7 +90,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
     };
     const isEditIconVisible = element.endDate
       ? new Date(element.endDate).getTime() + 60 * 30 * 1000 >
-          new Date().getTime() || currentUser.role === "admin"
+          new Date().getTime() || currentUser.role === "admin" || currentUser.role === "task-creator"
       : true;
     const formatDownloadLink = (link: fileType[] | string | number) => {
       return (
@@ -172,7 +172,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         {/* <td className="px-3 py-4 whitespace-nowrap border-r">{element.instructions}</td> */}
         <td className="px-3 py-4 whitespace-nowrap border-r text-sm flex">
           {" "}
-          {currentUser.role === "admin" && (
+          {(currentUser.role === "admin" || currentUser.role === "task-creator") && (
             <TrashIcon
               title="Delete task"
               style={{ height: "30px", width: "30px", cursor: "pointer" }}

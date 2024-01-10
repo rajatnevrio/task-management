@@ -583,14 +583,16 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                                 Select Type of Work
                                               </option>
                                             )}
-                                            {typesOfJobs.map((jobType,index) => (
-                                              <option
-                                                key={jobType+index}
-                                                value={jobType}
-                                              >
-                                                {jobType}
-                                              </option>
-                                            ))}
+                                            {typesOfJobs.map(
+                                              (jobType, index) => (
+                                                <option
+                                                  key={jobType + index}
+                                                  value={jobType}
+                                                >
+                                                  {jobType}
+                                                </option>
+                                              )
+                                            )}
                                           </select>
                                         </>
                                       )}
@@ -641,9 +643,9 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         <option value="">
                                           Select Employee
                                         </option>
-                                        {list.map((employee,index) => (
+                                        {list.map((employee, index) => (
                                           <option
-                                            key={employee.displayName+index}
+                                            key={employee.displayName + index}
                                             value={employee.displayName}
                                           >
                                             {employee.displayName}
@@ -740,12 +742,12 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                     {/* Other form fields go here */}
                                     {/* ... */}
 
-                                    {!isFieldDisabled() && (
-                                      <div className="flex gap-x-8">
-                                        <label className="w-fit flex items-center text-left">
-                                          Source Files:
-                                        </label>
+                                    <div className="flex gap-x-8">
+                                      <label className="w-fit flex items-center text-left">
+                                        Source Files:
+                                      </label>
 
+                                      {!isFieldDisabled() && (
                                         <input
                                           type="file"
                                           name="sourceFiles"
@@ -756,81 +758,82 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                           accept=".pdf,.doc,.docx,.ppt,.pptx"
                                           disabled={isFieldDisabled()}
                                         />
-                                        {formData.sourceFiles.length > 0 ? (
-                                          <div className="flex gap-x-[20px]">
-                                            <ul>
-                                              {formData.sourceFiles.map(
-                                                (file, index) => (
-                                                  <li
-                                                    key={index}
-                                                    className="flex items-center"
+                                      )}
+                                      {formData.sourceFiles.length > 0 ? (
+                                        <div className="flex gap-x-[20px]">
+                                          <ul>
+                                            {formData.sourceFiles.map(
+                                              (file, index) => (
+                                                <li
+                                                  key={index}
+                                                  className="flex items-center"
+                                                >
+                                                  <a
+                                                    href={file.url} // Assuming 'url' is the property containing the file URL
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="file-link hover:underline hover:text-blue-500"
                                                   >
-                                                    <a
-                                                      href={file.url} // Assuming 'url' is the property containing the file URL
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      className="file-link hover:underline hover:text-blue-500"
-                                                    >
-                                                      {file.name}
-                                                    </a>
-                                                    {!isFieldDisabled() && (
-                                                      <>
-                                                        <TrashIcon
-                                                          title="Delete task"
+                                                    {file.name}
+                                                  </a>
+                                                  {!isFieldDisabled() && (
+                                                    <>
+                                                      <TrashIcon
+                                                        title="Delete task"
+                                                        style={{
+                                                          height: "25px",
+                                                          width: "25px",
+                                                          cursor: "pointer",
+                                                          color: "red",
+                                                        }}
+                                                        className="color-red-500 rounded-full p-1"
+                                                        onClick={() =>
+                                                          handleFileDelete(
+                                                            file.id,
+                                                            "source"
+                                                          )
+                                                        }
+                                                      />
+                                                      {index === 0 && (
+                                                        <PlusIcon
+                                                          title="Add job"
                                                           style={{
-                                                            height: "25px",
-                                                            width: "25px",
+                                                            height: "18px",
+                                                            width: "18px",
                                                             cursor: "pointer",
-                                                            color: "red",
+                                                            color: "blue",
                                                           }}
-                                                          className="color-red-500 rounded-full p-1"
-                                                          onClick={() =>
-                                                            handleFileDelete(
-                                                              file.id,
-                                                              "source"
-                                                            )
-                                                          }
+                                                          onClick={() => {
+                                                            if (
+                                                              sourceFileInputRef.current
+                                                            ) {
+                                                              sourceFileInputRef.current.click();
+                                                            }
+                                                          }}
                                                         />
-                                                        {index === 0 && (
-                                                          <PlusIcon
-                                                            title="Add job"
-                                                            style={{
-                                                              height: "18px",
-                                                              width: "18px",
-                                                              cursor: "pointer",
-                                                              color: "blue",
-                                                            }}
-                                                            onClick={() => {
-                                                              if (
-                                                                sourceFileInputRef.current
-                                                              ) {
-                                                                sourceFileInputRef.current.click();
-                                                              }
-                                                            }}
-                                                          />
-                                                        )}
-                                                      </>
-                                                    )}
-                                                  </li>
-                                                )
-                                              )}
-                                            </ul>
-                                          </div>
-                                        ) : (
-                                          <span
-                                            className="border text-[16px]  p-1 cursor-pointer hover:bg-gray-200 rounded-lg"
-                                            onClick={() => {
-                                              if (sourceFileInputRef.current) {
-                                                sourceFileInputRef.current.click();
-                                              }
-                                            }}
-                                          >
-                                            {/* Customize the appearance of the label */}
-                                            Choose Files
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
+                                                      )}
+                                                    </>
+                                                  )}
+                                                </li>
+                                              )
+                                            )}
+                                          </ul>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="border text-[16px]  p-1 cursor-pointer hover:bg-gray-200 rounded-lg"
+                                          onClick={() => {
+                                            if (sourceFileInputRef.current) {
+                                              sourceFileInputRef.current.click();
+                                            }
+                                          }}
+                                        >
+                                          {/* Customize the appearance of the label */}
+                                          Choose Files
+                                        </span>
+                                      )}
+                                    </div>
+
                                     <div className="flex gap-x-8">
                                       <label className="w-fit flex items-center text-left ">
                                         Submit Files:
