@@ -5,7 +5,7 @@ const router = express.Router();
 const AdminController = require("../controllers/AdminController");
 
 router.post("/createUser", AdminController.createUser);
-router.get("/getUserByEmail/:email", AdminController.getUserByEmail);
+router.get("/getUserInfo/:uid", AdminController.getUsersInfo);
 router.get("/getUsersByRole/:role", AdminController.getUsersByRole);
 
 router.get("/getAllUsers", AdminController.getAllUsers);

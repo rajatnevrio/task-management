@@ -4,6 +4,7 @@ import React, {
   Fragment,
   SetStateAction,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import {
@@ -20,7 +21,12 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { Dialog, Transition } from "@headlessui/react";
-import { CheckIcon, TrashIcon, PlusIcon,CheckBadgeIcon } from "@heroicons/react/24/outline";
+import {
+  CheckIcon,
+  TrashIcon,
+  PlusIcon,
+  CheckBadgeIcon,
+} from "@heroicons/react/24/outline";
 import { DocumentData } from "@firebase/firestore-types";
 
 import { db } from "../firebase/firebase";
@@ -76,9 +82,11 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   const [list, setList] = useState<rolesApi[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [typesOfJobs, setTypesOfJobs] = useState<string[]>([]);
+  const [jobId, setJobId] = useState<string>("");
+  const sourceFileInputRef = useRef<HTMLInputElement>(null);
+  const submitFileInputRef = useRef<HTMLInputElement>(null);
   const [addingNewTypeOfWork, setAddingNewTypeOfWork] = useState(false);
-  const [newTypeOfWork, setNewTypeOfWork] = useState('')
-  const { getUserRoles, currentUser } = useAuth();
+  const [newTypeOfWork, setNewTypeOfWork] = useState("");
   const formattedDate = (date: any) => {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -94,7 +102,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-
 
     if (name === "newTypeOfWork") {
       setNewTypeOfWork(value);
@@ -207,7 +214,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   const isFieldDisabled = () => userDetails?.role === "employee";
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoading(true);
-    console.log("first12", e.target);
     const files = e.target.files;
     if (files && files.length > 0) {
       const fileUploadPromises = Array.from(files).map(async (file: File) => {
@@ -244,27 +250,34 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     }
   };
 
-  const handleFileDelete = async (fileId: string) => {
-    console.log("first1", fileId);
+  const handleFileDelete = async (fileId: string, type: string) => {
     try {
       // Find the file with the specified fileId
-      const fileToDelete = formData.sourceFiles.find(
-        (file: any) => file.id === fileId
-      );
-      console.log("first2", fileToDelete);
+      const fileToDelete =
+        type === "source"
+          ? formData.sourceFiles.find((file: any) => file.id === fileId)
+          : formData.submitFiles.find((file: any) => file.id === fileId);
 
       if (fileToDelete) {
         // Delete the file from Firebase Storage
         const storageRef = ref(storage, `files/${fileToDelete.id}`);
         await deleteObject(storageRef);
 
-        // Remove the file from the state
-        setFormData((prevData: any) => ({
-          ...prevData,
-          sourceFiles: prevData.sourceFiles.filter(
-            (file: any) => file.id !== fileId
-          ),
-        }));
+        if (type === "source") {
+          setFormData((prevData: any) => ({
+            ...prevData,
+            sourceFiles: prevData.sourceFiles.filter(
+              (file: any) => file.id !== fileId
+            ),
+          }));
+        } else {
+          setFormData((prevData: any) => ({
+            ...prevData,
+            submitFiles: prevData.submitFiles.filter(
+              (file: any) => file.id !== fileId
+            ),
+          }));
+        }
 
         // TODO: Update the task collection to remove the file link
         // You need to implement this part based on your data model and Firestore structure
@@ -303,7 +316,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       const querySnapshot = await getDocs(q);
 
       const jobs = querySnapshot.docs.map((doc) => doc.data().jobType);
-      console.log("first3e", jobs);
       setTypesOfJobs(jobs);
     } catch (error) {
       console.error("Error fetching types of jobs:", error);
@@ -311,10 +323,21 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     }
   };
 
+  const getJobId = async () => {
+    const counterDocRef = doc(db, "counters", "jobCounter");
+    const counterDocSnap = await getDoc(counterDocRef);
+    let newNum = 0;
+    if (counterDocSnap.exists()) {
+      newNum = (counterDocSnap.data().lastJobNumber || 1) + 1;
+    }
+    const newTitleId = `MS-JOB${String(newNum).padStart(5, "0")}`;
+    setJobId(newTitleId);
+  };
   useEffect(() => {
     if (sidebarOpen?.id?.length > 1) {
       getDocById(sidebarOpen.id);
     }
+    getJobId();
     getData();
     fetchTypesOfJobs();
   }, []);
@@ -323,20 +346,19 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     if (newTypeOfWork.trim() !== "") {
       // Add the new type of work to the Firebase collection
       try {
-        setLoading(true)
+        setLoading(true);
         const typesOfJobsCollection = collection(db, "typesOfJobs");
         await addDoc(typesOfJobsCollection, { jobType: newTypeOfWork.trim() });
       } catch (error) {
         console.error("Error adding new type of work:", error);
-        setLoading(false)
+        setLoading(false);
         // Handle error accordingly
       }
 
       setTypesOfJobs((prevTypes) => [...prevTypes, newTypeOfWork.trim()]);
       setNewTypeOfWork(""); // Clear the input field after adding
       setAddingNewTypeOfWork(false); // Stop adding a new type of work
-      setLoading(false)
-
+      setLoading(false);
     }
   };
   const handleSubmit = async (e: React.FormEvent) => {
@@ -346,7 +368,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       // Fetch the current job counter
       const counterDocRef = doc(db, "counters", "jobCounter");
       const counterDocSnap = await getDoc(counterDocRef);
-      
 
       const { ...formDataWithoutFiles } = formData;
 
@@ -359,13 +380,13 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       } else {
         let lastJobNumber = 1;
 
-      if (counterDocSnap.exists()) {
-        lastJobNumber = counterDocSnap.data().lastJobNumber || 1;
-      }
+        if (counterDocSnap.exists()) {
+          lastJobNumber = counterDocSnap.data().lastJobNumber || 1;
+        }
 
-      // Construct the new title ID
-      const newJobNumber = lastJobNumber + 1;
-      const newTitleId = `MS-JOB${String(newJobNumber).padStart(5, "0")}`;
+        // Construct the new title ID
+        const newJobNumber = lastJobNumber + 1;
+        const newTitleId = `MS-JOB${String(newJobNumber).padStart(5, "0")}`;
         // If adding a new task
         const docRef = await addDoc(collection(db, "tasks"), {
           ...formDataWithoutFiles,
@@ -379,8 +400,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         await updateDoc(docRef, {
           docId: docRef.id,
         });
-      await setDoc(counterDocRef, { lastJobNumber: newJobNumber });
-
+        await setDoc(counterDocRef, { lastJobNumber: newJobNumber });
       }
 
       // Update the job counter
@@ -445,7 +465,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                   leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                   leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 >
-                  <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:p-6">
+                  <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-[1000px] sm:min-h-auto sm:px-16 sm:py-8">
                     {loading ? (
                       <div className="flex w-full justify-center items-center min-h-[50vh]">
                         {" "}
@@ -457,7 +477,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                           <div className="mt-1 text-center sm:my-1 ">
                             <Dialog.Title
                               as="h1"
-                              className="text-3xl font-bold leading-6 text-gray-900  pb-6"
+                              className="text-[32px] font-bold leading-6 text-gray-900  pb-6"
                             >
                               {sidebarOpen?.id?.length > 1
                                 ? "Update Job Sheet"
@@ -465,35 +485,78 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                             </Dialog.Title>
                             <div className="mt-2 text-[20px]">
                               <form onSubmit={handleSubmit}>
-                                <div className="mt-2 flex flex-col grid grid-cols-2 gap-4 items-start">
+                                <div className="mt-2 flex flex-col grid grid-cols-2 gap-20 items-start">
                                   <div className="w-full flex flex-col gap-y-[20px]">
+                                    <div>
+                                      <label
+                                        htmlFor="jobId"
+                                        className="flex ml-1.5 text-lg font-medium leading-6 text-gray-900"
+                                      >
+                                        Job Id
+                                      </label>
+                                      <div className="mt-2">
+                                        <input
+                                          type="jobId"
+                                          name="jobId"
+                                          value={jobId}
+                                          disabled
+                                          id="jobId"
+                                          className="block w-full text-md rounded-md border-0 p-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                          placeholder="you@example.com"
+                                        />
+                                      </div>
+                                    </div>
                                     {/* <label className="w-full flex">
                                       Task Title:
                                       <input
                                         name="title"
                                         value={formData.title}
                                         onChange={handleInputChange}
-                                        required
+                                        requi\
                                         className="ml-5 border "
                                         disabled={isFieldDisabled()}
                                       />
                                     </label> */}
-                                    <label className="w-full flex">
-                                      Number of Slides:
-                                      <input
-                                        type="number"
-                                        name="numberOfSlides"
-                                        value={formData.numberOfSlides}
-                                        onChange={handleInputChange}
-                                        required
-                                        min="1"
-                                        className="ml-5 border my-1 "
-                                        disabled={isFieldDisabled()}
-                                      />
-                                    </label>
 
-                                    <label className="w-full flex items-center">
-                                      Type of Work:
+                                    <div>
+                                      <label className="flex justify-between text-lg font-medium leading-6 text-gray-900">
+                                        Type of Work:
+                                        {!isFieldDisabled() &&
+                                          (addingNewTypeOfWork ? (
+                                            // Step 5: Show input field and tick button when adding a new type of work
+                                            <div>
+                                              <button
+                                                type="button"
+                                                className="ml-2 hover:bg-green-500 hover:text-white text-black px-2 py-1 rounded"
+                                                onClick={handleTickButtonClick}
+                                              >
+                                                ✓
+                                              </button>
+                                              <button
+                                                type="button"
+                                                className="ml-2 hover:bg-red-500 hover:text-white text-black px-2 py-1 rounded"
+                                                onClick={() =>
+                                                  setAddingNewTypeOfWork(false)
+                                                }
+                                              >
+                                                x
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <PlusIcon
+                                              title="Add job"
+                                              style={{
+                                                height: "30px",
+                                                width: "30px",
+                                                cursor: "pointer",
+                                              }}
+                                              className="hover:bg-blue-500  hover:text-white rounded-full p-1 ml-2"
+                                              onClick={() => {
+                                                setAddingNewTypeOfWork(true);
+                                              }}
+                                            />
+                                          ))}
+                                      </label>
                                       {addingNewTypeOfWork ? ( // Step 5: Show input field and tick button when adding a new type of work
                                         <>
                                           <input
@@ -501,24 +564,9 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                             name="newTypeOfWork"
                                             value={newTypeOfWork}
                                             onChange={handleInputChange}
-                                            className="ml-5 border my-1"
+                                            className="block mt-2 w-full rounded-md border-0 p-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-lg sm:leading-6"
                                             placeholder="Enter new type of work"
                                           />
-                                          
-                                          <button
-                                            type="button"
-                                            className="ml-2 hover:bg-green-500 hover:text-white text-black px-2 py-1 rounded"
-                                            onClick={handleTickButtonClick}
-                                          >
-                                            ✓
-                                          </button>
-                                          <button
-                                            type="button"
-                                            className="ml-2 hover:bg-red-500 hover:text-white text-black px-2 py-1 rounded"
-                                            onClick={()=> setAddingNewTypeOfWork(false)}
-                                          >
-                                            x
-                                          </button>
                                         </>
                                       ) : (
                                         <>
@@ -527,45 +575,43 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                             value={formData.typeOfWork}
                                             onChange={handleInputChange}
                                             required
-                                            className="ml-5 border my-1"
+                                            className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
                                             disabled={isFieldDisabled()}
                                           >
-                                            { formData.typeOfWork ==="" && <option value="">
-                                              Select Type of Work
-                                            </option>}
-                                            {typesOfJobs.map((jobType) => (
+                                            {formData.typeOfWork === "" && (
+                                              <option value="">
+                                                Select Type of Work
+                                              </option>
+                                            )}
+                                            {typesOfJobs.map((jobType,index) => (
                                               <option
-                                                key={jobType}
+                                                key={jobType+index}
                                                 value={jobType}
                                               >
                                                 {jobType}
                                               </option>
                                             ))}
                                           </select>
-                                          {  !isFieldDisabled() && <PlusIcon
-                                            title="Add job"
-                                            style={{
-                                              height: "30px",
-                                              width: "30px",
-                                              cursor: "pointer",
-                                            }}
-                                            className="hover:bg-blue-500  hover:text-white rounded-full p-1 ml-2"
-                                            onClick={()=>{setAddingNewTypeOfWork(true)}}
-                                          />}
                                         </>
                                       )}
-                                    </label>
-                                    <label className="w-full flex">
-                                      Job Status:
+                                    </div>
+
+                                    <div>
+                                      <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                        Job Status:
+                                      </label>
+
                                       <select
                                         name="jobStatus"
                                         value={formData.jobStatus}
                                         onChange={handleInputChange}
-                                        className="ml-5 border my-1"
+                                        className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
                                       >
-                                        { !isFieldDisabled() && <option value="unassigned">
-                                          Unassigned
-                                        </option>}
+                                        {!isFieldDisabled() && (
+                                          <option value="unassigned">
+                                            Unassigned
+                                          </option>
+                                        )}
                                         <option value="notstarted">
                                           Not Started
                                         </option>
@@ -579,36 +625,25 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                           Handover
                                         </option>
                                       </select>
-                                    </label>
+                                    </div>
+                                    <div>
+                                      <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                        Employee to be assigned:
+                                      </label>
 
-                                    <label className="w-full flex">
-                                      PP (1 PP = 6 mins):
-                                      <input
-                                        type="number"
-                                        name="pp"
-                                        value={formData.pp}
-                                        onChange={handleInputChange}
-                                        required
-                                        min="1"
-                                        disabled={isFieldDisabled()}
-                                        className="ml-5 border my-1"
-                                      />
-                                    </label>
-                                    <label className="w-full flex">
-                                      Employee to be assigned:
                                       <select
                                         name="employeeAssigned"
                                         value={formData.employeeAssigned}
                                         onChange={handleInputChange}
-                                        className="ml-5 border my-1"
+                                        className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
                                         disabled={isFieldDisabled()}
                                       >
                                         <option value="">
                                           Select Employee
                                         </option>
-                                        {list.map((employee) => (
+                                        {list.map((employee,index) => (
                                           <option
-                                            key={employee.displayName}
+                                            key={employee.displayName+index}
                                             value={employee.displayName}
                                           >
                                             {employee.displayName}
@@ -616,7 +651,42 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         ))}{" "}
                                         {/* Add more options as needed */}
                                       </select>
-                                    </label>
+                                    </div>
+
+                                    <div className="flex  gap-x-16">
+                                      <div>
+                                        <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                          PP (1 PP = 6 mins):
+                                        </label>
+
+                                        <input
+                                          type="number"
+                                          name="pp"
+                                          value={formData.pp}
+                                          onChange={handleInputChange}
+                                          required
+                                          min="1"
+                                          disabled={isFieldDisabled()}
+                                          className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                          Number of Slides:
+                                        </label>
+
+                                        <input
+                                          type="number"
+                                          name="numberOfSlides"
+                                          value={formData.numberOfSlides}
+                                          onChange={handleInputChange}
+                                          required
+                                          min="1"
+                                          className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                          disabled={isFieldDisabled()}
+                                        />
+                                      </div>
+                                    </div>
                                   </div>
                                   <div className="w-full flex flex-col gap-y-[20px] ">
                                     {/* <label className="w-full flex">
@@ -640,145 +710,219 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         className="ml-5 border my-1"
                                       />
                                     </label> */}
-
-                                    <label className="w-full flex">
-                                      Deadline :
+                                    <div>
+                                      <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                        Deadline :
+                                      </label>
                                       <input
                                         type="datetime-local"
                                         name="deadline"
                                         value={formData.deadline}
                                         onChange={handleInputChange}
-                                        className="ml-5 border my-1"
+                                        className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
                                         disabled={isFieldDisabled()}
                                       />
-                                    </label>
+                                    </div>
+                                    <div>
+                                      <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                        Instructions:
+                                      </label>
+
+                                      <textarea
+                                        name="instructions"
+                                        value={formData.instructions}
+                                        onChange={handleTextareaChange}
+                                        disabled={isFieldDisabled()}
+                                        className="mt-2 block w-full min-h-[100px] rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                      />
+                                    </div>
+
                                     {/* Other form fields go here */}
                                     {/* ... */}
 
                                     {!isFieldDisabled() && (
-                                      <label className="w-full flex items-center">
-                                        Source Files:
+                                      <div className="flex gap-x-8">
+                                        <label className="w-fit flex items-center text-left">
+                                          Source Files:
+                                        </label>
+
                                         <input
                                           type="file"
                                           name="sourceFiles"
+                                          ref={sourceFileInputRef}
                                           onChange={handleFileUpload}
                                           multiple
-                                          className="ml-5 border my-1 opacity-0 h-8 w-8"
+                                          className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
                                           accept=".pdf,.doc,.docx,.ppt,.pptx"
                                           disabled={isFieldDisabled()}
                                         />
-                                        <span className="border text-[16px]  p-1 cursor-pointer hover:bg-gray-200 rounded-lg">
-                                          {/* Customize the appearance of the label */}
-                                          Choose Files
-                                        </span>
-                                      </label>
-                                    )}
-                                    {formData.sourceFiles.length > 0 && (
-                                      <div className="flex gap-x-[20px]">
-                                        <p>Source Files:</p>
-                                        <ul>
-                                          {formData.sourceFiles.map(
-                                            (file, index) => (
-                                              <li
-                                                key={index}
-                                                className="flex items-center"
-                                              >
-                                                <a
-                                                  href={file.url} // Assuming 'url' is the property containing the file URL
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="file-link hover:underline hover:text-blue-500"
-                                                >
-                                                  {file.name}
-                                                </a>
-                                                {!isFieldDisabled() && (
-                                                  <TrashIcon
-                                                    title="Delete task"
-                                                    style={{
-                                                      height: "25px",
-                                                      width: "25px",
-                                                      cursor: "pointer",
-                                                    }}
-                                                    className="hover:bg-red-500 rounded-full p-1"
-                                                    onClick={() =>
-                                                      handleFileDelete(file.id)
-                                                    }
-                                                  />
-                                                )}
-                                              </li>
-                                            )
-                                          )}
-                                        </ul>
+                                        {formData.sourceFiles.length > 0 ? (
+                                          <div className="flex gap-x-[20px]">
+                                            <ul>
+                                              {formData.sourceFiles.map(
+                                                (file, index) => (
+                                                  <li
+                                                    key={index}
+                                                    className="flex items-center"
+                                                  >
+                                                    <a
+                                                      href={file.url} // Assuming 'url' is the property containing the file URL
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="file-link hover:underline hover:text-blue-500"
+                                                    >
+                                                      {file.name}
+                                                    </a>
+                                                    {!isFieldDisabled() && (
+                                                      <>
+                                                        <TrashIcon
+                                                          title="Delete task"
+                                                          style={{
+                                                            height: "25px",
+                                                            width: "25px",
+                                                            cursor: "pointer",
+                                                            color: "red",
+                                                          }}
+                                                          className="color-red-500 rounded-full p-1"
+                                                          onClick={() =>
+                                                            handleFileDelete(
+                                                              file.id,
+                                                              "source"
+                                                            )
+                                                          }
+                                                        />
+                                                        {index === 0 && (
+                                                          <PlusIcon
+                                                            title="Add job"
+                                                            style={{
+                                                              height: "18px",
+                                                              width: "18px",
+                                                              cursor: "pointer",
+                                                              color: "blue",
+                                                            }}
+                                                            onClick={() => {
+                                                              if (
+                                                                sourceFileInputRef.current
+                                                              ) {
+                                                                sourceFileInputRef.current.click();
+                                                              }
+                                                            }}
+                                                          />
+                                                        )}
+                                                      </>
+                                                    )}
+                                                  </li>
+                                                )
+                                              )}
+                                            </ul>
+                                          </div>
+                                        ) : (
+                                          <span
+                                            className="border text-[16px]  p-1 cursor-pointer hover:bg-gray-200 rounded-lg"
+                                            onClick={() => {
+                                              if (sourceFileInputRef.current) {
+                                                sourceFileInputRef.current.click();
+                                              }
+                                            }}
+                                          >
+                                            {/* Customize the appearance of the label */}
+                                            Choose Files
+                                          </span>
+                                        )}
                                       </div>
                                     )}
-                                    <label className="w-full flex items-center">
-                                      Submit Files:
+                                    <div className="flex gap-x-8">
+                                      <label className="w-fit flex items-center text-left ">
+                                        Submit Files:
+                                      </label>
+
                                       <input
                                         type="file"
                                         name="submitFiles"
+                                        ref={submitFileInputRef}
                                         onChange={handleFileUpload}
                                         multiple
-                                        className="ml-5 border my-1 opacity-0 h-8 w-8"
+                                        className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
                                         accept=".pdf,.doc,.docx,.ppt,.pptx"
                                         disabled={isFieldDisabled()}
                                       />
-                                      <span className="border text-[16px]  p-1 cursor-pointer hover:bg-gray-200 rounded-lg">
-                                        {/* Customize the appearance of the label */}
-                                        Choose Files
-                                      </span>
-                                    </label>
-                                    {formData.submitFiles.length > 0 && (
-                                      <div className="flex gap-x-[20px]">
-                                        <p>Submitted Files:</p>
-                                        <ul>
-                                          {formData?.submitFiles.map(
-                                            (file, index) => (
-                                              <li
-                                                key={index}
-                                                className="flex items-center"
-                                              >
-                                                <a
-                                                  href={file.url} // Assuming 'url' is the property containing the file URL
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="file-link hover:underline hover:text-blue-500"
+                                      {formData.submitFiles.length > 0 ? (
+                                        <div className="flex gap-x-[20px]">
+                                          <ul>
+                                            {formData.submitFiles.map(
+                                              (file, index) => (
+                                                <li
+                                                  key={index}
+                                                  className="flex items-center"
                                                 >
-                                                  {file.name}
-                                                </a>
-                                                <TrashIcon
-                                                  title="Delete task"
-                                                  style={{
-                                                    height: "25px",
-                                                    width: "25px",
-                                                    cursor: "pointer",
-                                                  }}
-                                                  className="hover:bg-red-500 rounded-full p-1"
-                                                  onClick={() =>
-                                                    handleFileDelete(file.id)
-                                                  }
-                                                />
-                                              </li>
-                                            )
-                                          )}
-                                        </ul>
-                                      </div>
-                                    )}
+                                                  <a
+                                                    href={file.url} // Assuming 'url' is the property containing the file URL
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="file-link hover:underline hover:text-blue-500"
+                                                  >
+                                                    {file.name}
+                                                  </a>
+                                                  {!isFieldDisabled() && (
+                                                    <>
+                                                      <TrashIcon
+                                                        title="Delete task"
+                                                        style={{
+                                                          height: "25px",
+                                                          width: "25px",
+                                                          cursor: "pointer",
+                                                          color: "red",
+                                                        }}
+                                                        className="color-red-500 rounded-full p-1"
+                                                        onClick={() =>
+                                                          handleFileDelete(
+                                                            file.id,
+                                                            "submit"
+                                                          )
+                                                        }
+                                                      />
+                                                      {index === 0 && (
+                                                        <PlusIcon
+                                                          title="Add job"
+                                                          style={{
+                                                            height: "18px",
+                                                            width: "18px",
+                                                            cursor: "pointer",
+                                                            color: "blue",
+                                                          }}
+                                                          onClick={() => {
+                                                            if (
+                                                              submitFileInputRef.current
+                                                            ) {
+                                                              submitFileInputRef.current.click();
+                                                            }
+                                                          }}
+                                                        />
+                                                      )}
+                                                    </>
+                                                  )}
+                                                </li>
+                                              )
+                                            )}
+                                          </ul>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="border text-[16px]  p-1 cursor-pointer hover:bg-gray-200 rounded-lg"
+                                          onClick={() => {
+                                            if (submitFileInputRef.current) {
+                                              submitFileInputRef.current.click();
+                                            }
+                                          }}
+                                        >
+                                          {/* Customize the appearance of the label */}
+                                          Choose Files
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-
-                                <div className=" flex w-full">
-                                  <label className="flex items-center w-full">
-                                    Instructions:
-                                    <textarea
-                                      name="instructions"
-                                      value={formData.instructions}
-                                      onChange={handleTextareaChange}
-                                      disabled={isFieldDisabled()}
-                                      className="ml-5 border my-1 min-w-[35%] h-[8vh]"
-                                    />
-                                  </label>
-                                </div>
-                                <div className="flex w-full gap-x-6 ">
+                                <div className="flex w-full gap-x-20 ">
                                   <button
                                     title="Submit"
                                     type="submit"

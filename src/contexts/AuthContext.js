@@ -7,8 +7,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
-import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
 import LoaderComp from "../components/Loader";
+import axios from "axios";
 
 export function useAuth() {
   return useContext(AuthContext);
@@ -28,7 +28,6 @@ export function AuthProvider({ children }) {
         // User has been successfully created
         const user = userCredential.user;
         // Add roles for the user
-        addRoles(email, name);
 
         return user;
       })
@@ -39,99 +38,45 @@ export function AuthProvider({ children }) {
       });
   }
 
-  useEffect(() => {}, [currentUser]);
-  async function addRoles(email, name) {
-    try {
-      const docRef = await addDoc(collection(db, "userRoles"), {
-        name: name,
-        email: email,
-        role: "employee",
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  }
-  function login(email, password) {
-    return signInWithEmailAndPassword(auth, email, password);
+ 
+   async function login (email, password) {
+    const userDetails = await signInWithEmailAndPassword(auth, email, password)
+    ;
+    // await getDetails(userDetails.user.uid)
+
   }
 
   function logout() {
-    return signOut(auth);
+    return signOut(auth)
+      .then(() => {
+        setCurrentUser(null); // Set currentUser to null on successful sign-out
+      })
+      .catch((error) => {
+        console.error("Error signing out:", error);
+      });
   }
 
   function resetPassword(email) {
     return sendPasswordResetEmail(auth, email);
   }
-  async function getUserRoles() {
-    const userRolesCollection = collection(db, "userRoles");
 
-    try {
-      // Create a query with a where condition
-      const querySnapshot = await getDocs(
-        query(userRolesCollection, where("role", "==", "employee"))
-      );
 
-      const userRolesArray = [];
 
-      querySnapshot.forEach((doc) => {
-        // Access data for each document
-        const data = doc.data();
-
-        // Add the document data to the array
-        userRolesArray.push(data);
-      });
-
-      return userRolesArray;
-    } catch (error) {
-      console.error("Error getting user roles:", error);
-      // Handle the error or throw it again based on your use case
-      throw error;
-    }
+  const getDetails = async(uid)=>{
+    const response = await axios.get(
+      ` ${process.env.REACT_APP_API_URL}/getUserInfo/${uid}`,
+    );
+    setCurrentUser(response.data)
   }
-
-  async function getUserRoleByEmail(email) {
-    const userRolesCollection = collection(db, "userRoles");
-
-    const q = query(userRolesCollection, where("email", "==", email));
-
-    try {
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.size === 0) {
-        console.log(`No user role found for email: ${email}`);
-        return null;
-      }
-
-      // Assuming there's only one document for a unique email
-      const doc = querySnapshot.docs[0];
-      const userRole = doc.data();
-      return userRole;
-    } catch (error) {
-      console.error("Error getting user role:", error);
-      return null;
-    }
-  }
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userRole = await getUserRoleByEmail(user.email);
+        getDetails(user.uid)
 
-        // Add the role property to the user object
-        if (userRole) {
-          user.role = userRole.role;
-        } else {
-          // Set a default role if no user role is found
-          user.role = "employee";
-        }
-
-        setCurrentUser(user);
-      } else {
-        setCurrentUser(user);
-      }
+        // setCurrentUser(user);
+      } 
       setLoading(false);
     });
-
     return unsubscribe;
   }, []);
 
@@ -141,8 +86,6 @@ export function AuthProvider({ children }) {
     login,
     logout,
     resetPassword,
-    getUserRoles,
-    getUserRoleByEmail,
   };
 
   return (

@@ -14,10 +14,10 @@ class AdminController {
     }
   }
 
-  static async getUserByEmail(req, res) {
+  static async getUsersInfo(req, res) {
     try {
-      const email = req.params.email;
-      const result = await adminModel.getUserByEmail(email);
+      const uid = req.params.uid;
+      const result = await adminModel.getUsersInfo(uid);
       res.status(200).json(result);
     } catch (error) {
       console.error("Error retrieving user:", error);

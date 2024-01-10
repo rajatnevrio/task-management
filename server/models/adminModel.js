@@ -14,8 +14,8 @@ class AdminModel {
     return { uid: userRecord.uid, role };
   }
 
-  static async getUserByEmail(email) {
-    const userRecord = await admin.auth().getUserByEmail(email);
+  static async getUsersInfo(uid) {
+    const userRecord = await admin.auth().getUser(uid);
 
     return {
       uid: userRecord.uid,

@@ -200,7 +200,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
             />
           ) : (
             <PencilSquareIcon
-              title="No editing allowed 30 minutes after the end time"
+              title="Editing is not permitted after 30 minutes of submission."
               style={{ height: "30px", width: "30px" }}
               className="hover:bg-gray-300 rounded-full p-1 cursor-no-drop"
             />
