@@ -14,9 +14,12 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { Dialog, Transition } from "@headlessui/react";
 import { CheckIcon } from "@heroicons/react/24/outline";
@@ -117,9 +120,27 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
 
       // Make a PUT request to your API endpoint
       const response = await axios.put(
-        ` ${process.env.REACT_APP_API_URL}/updateUser/${uid}`,
+        `${process.env.REACT_APP_API_URL}/updateUser/${uid}`,
         { displayName, email }
       );
+
+      // Update the employaasigned field in the task documents
+      const taskQuerySnapshot = await getDocs(collection(db, "tasks"));
+
+      await Promise.all(
+        taskQuerySnapshot.docs.map(async (taskDoc) => {
+          const taskData = taskDoc.data();
+
+          const employeeAssigned = taskData?.employeeAssigned;
+
+          if (employeeAssigned === modalState.details?.displayName) {
+            await updateDoc(doc(db, "tasks", taskDoc.id), {
+              employeeAssigned: displayName,
+            });
+          }
+        })
+      );
+
       setModalState((prev) => ({
         ...prev,
         isOpen: false,
@@ -142,13 +163,15 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
       // Handle error or update UI accordingly
     }
   };
+
   useEffect(() => {
     if (
       modalState.details &&
       modalState.details.displayName &&
-      modalState.details.displayName.length > 1
+      modalState.details.displayName.length > 1 &&
+      nameRef.current
     ) {
-      nameRef.current!.value = modalState?.details?.displayName;
+      nameRef.current.value = modalState?.details?.displayName;
       emailRef.current!.value = modalState?.details?.email;
     }
   }, [modalState.details]);
