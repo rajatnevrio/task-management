@@ -9,6 +9,7 @@ import {
 } from "firebase/auth";
 import LoaderComp from "../components/Loader";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 export function useAuth() {
   return useContext(AuthContext);
@@ -40,8 +41,7 @@ export function AuthProvider({ children }) {
 
  
    async function login (email, password) {
-    const userDetails = await signInWithEmailAndPassword(auth, email, password)
-    ;
+    const userDetails = await signInWithEmailAndPassword(auth, email, password);
     // await getDetails(userDetails.user.uid)
 
   }
@@ -65,8 +65,11 @@ export function AuthProvider({ children }) {
   const getDetails = async(uid)=>{
     const response = await axios.get(
       ` ${process.env.REACT_APP_API_URL}/getUserInfo/${uid}`,
-    );
-    setCurrentUser(response.data)
+    ).catch((error)=>{
+      toast.error(error?.message)
+      console.log(error.message)
+    });
+    setCurrentUser(response?.data)
   }
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {

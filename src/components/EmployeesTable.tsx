@@ -31,11 +31,11 @@ interface rolesApi {
   uid: string;
 }
 interface EmployeeTableProps {
-  list:Employee[],
+  list: Employee[];
   modalState: AddModalState;
   setModalState: Dispatch<SetStateAction<AddModalState>>;
   updateTaskData: () => void;
-  type ? : string
+  type?: string;
 }
 interface ModalState {
   isOpen: boolean;
@@ -47,9 +47,8 @@ const EmployeesTable: React.FC<EmployeeTableProps> = ({
   modalState,
   setModalState,
   updateTaskData,
-  type
+  type,
 }) => {
-
   const { currentUser } = useAuth();
 
   const [confirmModal, setConfirmModal] = useState<ModalState>({
@@ -82,8 +81,6 @@ const EmployeesTable: React.FC<EmployeeTableProps> = ({
     }
   };
 
-
-
   const tableRows = list.map((element, index) => {
     return (
       <tr className="items text-md text-center">
@@ -99,8 +96,13 @@ const EmployeesTable: React.FC<EmployeeTableProps> = ({
           {currentUser.role === "admin" && (
             <TrashIcon
               title="Delete task"
-              style={{ height: "30px", width: "30px", cursor: "pointer" }}
-              className="hover:bg-red-500 rounded-full p-1"
+              style={{
+                height: "30px",
+                width: "30px",
+                cursor: "pointer",
+                color: "red",
+              }}
+              className="hover:scale-125 rounded-full p-1"
               onClick={() =>
                 setConfirmModal({
                   isOpen: true,
@@ -111,8 +113,13 @@ const EmployeesTable: React.FC<EmployeeTableProps> = ({
           )}
           <PencilSquareIcon
             title="Edit task"
-            style={{ height: "30px", width: "30px", cursor: "pointer" }}
-            className="hover:bg-green-500 rounded-full p-1"
+            style={{
+              height: "30px",
+              width: "30px",
+              cursor: "pointer",
+              color: "blue",
+            }}
+            className="hover:scale-125 rounded-full p-1"
             onClick={() =>
               setModalState((prevSidebarState) => ({
                 ...prevSidebarState,

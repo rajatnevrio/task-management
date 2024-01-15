@@ -24,7 +24,6 @@ const Dashboard = () => {
   const [details, setDetails] = useState<UserDetails | undefined>();
   const getUserDetail = async () => {
     try {
-
       // Log the userRole for debugging
       if (currentUser) {
         await setDetails({
@@ -102,7 +101,8 @@ const Dashboard = () => {
             <span className=" flex items-center justify-center text-4xl font-semibold">
               Job Assignment
             </span>
-            {(currentUser.role === "admin" || currentUser.role === "task-creator") && (
+            {(currentUser.role === "admin" ||
+              currentUser.role === "task-creator") && (
               <button
                 title="Create Job"
                 onClick={() => {
@@ -112,7 +112,7 @@ const Dashboard = () => {
                     id: "",
                   }));
                 }}
-                className="h-12 my-4 mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
+                className=" hover:scale-125 h-12 my-4 shadow-md mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
               >
                 Create Job
               </button>
@@ -135,7 +135,6 @@ const Dashboard = () => {
           )}
         </div>
       )}
-      <div></div>
     </div>
   );
 };

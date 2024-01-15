@@ -90,7 +90,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
     };
     const isEditIconVisible = element.endDate
       ? new Date(element.endDate).getTime() + 60 * 30 * 1000 >
-          new Date().getTime() || currentUser.role === "admin" || currentUser.role === "task-creator"
+          new Date().getTime() ||
+        currentUser.role === "admin" ||
+        currentUser.role === "task-creator"
       : true;
     const formatDownloadLink = (link: fileType[] | string | number) => {
       return (
@@ -103,7 +105,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
                 rel="noopener noreferrer"
                 className="file-link hover:underline hover:text-blue-500"
               >
-                {file.name},
+                {file.name.length > 15
+                  ? file.name.substring(0, 15) + "..."
+                  : file.name}
               </a>
             </li>
           ))}
@@ -131,8 +135,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
       return date.toLocaleString("en-US", options);
     };
     return (
-      <tr className="items text-md text-center" key={index}>
-        <td className="px-3 py-4 whitespace-nowrap border-r">
+      <tr
+        className="items text-md text-center transition-all duration-300 hover:bg-gray-100"
+        key={index}
+      >
+        <td className="px-3 py-4 whitespace-nowrap border-r font-semibold">
           {element.titleId}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
@@ -163,48 +170,58 @@ const TaskTable: React.FC<TaskTableProps> = ({
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDateTime(element.deadline)}
         </td>
-        <td className="px-3 py-4 whitespace-nowrap w-[180px] border-r">
+        <td className="px-3 py-4 whitespace-nowrap border-r w-[180px]">
           {element.timer ? <CountdownTimer targetDate={dateObj} /> : "-"}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {formattedDate}
         </td>
+        {/* Uncomment the line below if you want to display instructions */}
         {/* <td className="px-3 py-4 whitespace-nowrap border-r">{element.instructions}</td> */}
-        <td className="px-3 py-4 whitespace-nowrap border-r text-sm flex">
-          {" "}
-          {(currentUser.role === "admin" || currentUser.role === "task-creator") && (
-            <TrashIcon
-              title="Delete task"
-              style={{ height: "30px", width: "30px", cursor: "pointer" }}
-              className="hover:bg-red-500 rounded-full p-1"
-              onClick={() =>
-                setConfirmModal({
-                  isOpen: true,
-                  id: element.docId,
-                })
-              }
-            />
-          )}
-          {isEditIconVisible ? (
-            <PencilSquareIcon
-              title="Edit task"
-              style={{ height: "30px", width: "30px", cursor: "pointer" }}
-              className="hover:bg-green-500 rounded-full p-1"
-              onClick={() =>
-                setSidebarOpen((prevSidebarState) => ({
-                  ...prevSidebarState,
-                  isOpen: true,
-                  id: element?.docId?.toString(), // Ensure id is treated as a string
-                }))
-              }
-            />
-          ) : (
-            <PencilSquareIcon
-              title="Editing is not permitted after 30 minutes of submission."
-              style={{ height: "30px", width: "30px" }}
-              className="hover:bg-gray-300 rounded-full p-1 cursor-no-drop"
-            />
-          )}
+        <td className="px-3 py-4 whitespace-nowrap border-r text-sm ">
+          <div className="flex">
+            {(currentUser.role === "admin" ||
+              currentUser.role === "task-creator") && (
+              <TrashIcon
+                title="Delete task"
+                style={{
+                  height: "30px",
+                  width: "30px",
+                  cursor: "pointer",
+                  color: "red",
+                }}
+                className="hover:scale-125 rounded-full p-1"
+                onClick={() =>
+                  setConfirmModal({ isOpen: true, id: element.docId })
+                }
+              />
+            )}
+            {isEditIconVisible ? (
+              <PencilSquareIcon
+                title="Edit task"
+                style={{
+                  height: "30px",
+                  width: "30px",
+                  cursor: "pointer",
+                  color: "blue ",
+                }}
+                className="hover:scale-125 rounded-full p-1 ml-2"
+                onClick={() =>
+                  setSidebarOpen((prevSidebarState) => ({
+                    ...prevSidebarState,
+                    isOpen: true,
+                    id: element?.docId?.toString(), // Ensure id is treated as a string
+                  }))
+                }
+              />
+            ) : (
+              <PencilSquareIcon
+                title="Editing is not permitted after 30 minutes of submission."
+                style={{ height: "30px", width: "30px", cursor: "not-allowed" }}
+                className="hover:scale-125 rounded-full p-1 ml-2"
+              />
+            )}
+          </div>
         </td>
       </tr>
     );
@@ -233,14 +250,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
     <>
       <table
         {...getTableProps()}
-        className="-my-2 overflow-x-auto border  mx-4 sm:m-8 lg:mx-1 overflowY-auto"
+        className="w-full -my-2 shadow-md overflow-x-auto border mx-4 sm:m-8 lg:mx-1 overflowY-auto"
       >
         <thead>
-          <tr className="border  rounded p-2 bg-gray-200">
+          <tr className="bg-gray-200 border rounded p-2">
             {tableHeaders.map((header, index) => (
               <th
                 key={index}
-                className="px-2 py-4 border-r-2 border-gray-300 text-center text-md font-medium text-gray-500 uppercase tracking-wider"
+                className="px-4 py-3 border-r-2 border-gray-300 text-center text-md font-medium text-gray-700 uppercase tracking-wider"
               >
                 {header}
               </th>
@@ -249,6 +266,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">{tableRows}</tbody>
       </table>
+
       {confirmModal.isOpen && (
         <ConfirmModal
           message="Are you sure you want to delete this task?"

@@ -58,6 +58,10 @@ interface rolesApi {
   displayName: string;
   role: string;
 }
+type LoadingState = {
+  loading: boolean;
+  type: string; // You can replace 'string' with the actual type you want
+};
 const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   sidebarOpen,
   setSidebarOpen,
@@ -80,7 +84,10 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     timer: "",
   });
   const [list, setList] = useState<rolesApi[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<LoadingState>({
+    loading: false,
+    type: "",
+  });
   const [typesOfJobs, setTypesOfJobs] = useState<string[]>([]);
   const [jobId, setJobId] = useState<string>("");
   const sourceFileInputRef = useRef<HTMLInputElement>(null);
@@ -170,7 +177,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     return { timer: formattedDate(timer), startTime: formattedDate(timer) };
   };
   const getDocById = async (docId: string) => {
-    setLoading(true);
+    setLoading({ ...loading, loading: true, type: "main" });
     try {
       // Form a reference to the document using the unique ID
       const docRef = doc(collection(db, "tasks"), docId);
@@ -184,11 +191,10 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
           ...prevData,
           ...docData,
         }));
-        setLoading(false);
-
+        setLoading({ ...loading, loading: false, type: "" });
         return docData;
       } else {
-        setLoading(false);
+        setLoading({ ...loading, loading: false, type: "" });
         console.log(
           `Document with ID ${docId} does not exist in collection ${"tasks"}`
         );
@@ -213,7 +219,8 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   };
   const isFieldDisabled = () => userDetails?.role === "employee";
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLoading(true);
+    console.log("first", e.target.name);
+    setLoading({ ...loading, loading: true, type: `${e.target.name}` });
     const files = e.target.files;
     if (files && files.length > 0) {
       const fileUploadPromises = Array.from(files).map(async (file: File) => {
@@ -238,7 +245,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       const newFiles = await Promise.all(fileUploadPromises);
 
       // Display a success message
-      setLoading(false);
+      setLoading({ ...loading, loading: false, type: "" });
 
       // Append new files to the existing files
       setFormData((prevData: any) => ({
@@ -300,11 +307,11 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       const response = await axios.get(
         `${process.env.REACT_APP_API_URL}/getUsersByRole/employee`
       );
-
       const users = response.data;
       setList(users);
     } catch (error: any) {
-      console.error("Error fetching user data:", error.message);
+      toast.error(error.message);
+      console.error(error);
       // Handle error accordingly, e.g., show an error message to the user
     }
   };
@@ -346,24 +353,24 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     if (newTypeOfWork.trim() !== "") {
       // Add the new type of work to the Firebase collection
       try {
-        setLoading(true);
+        setLoading({ ...loading, loading: true, type: "jobType" });
         const typesOfJobsCollection = collection(db, "typesOfJobs");
         await addDoc(typesOfJobsCollection, { jobType: newTypeOfWork.trim() });
       } catch (error) {
         console.error("Error adding new type of work:", error);
-        setLoading(false);
+        setLoading({ ...loading, loading: false, type: "" });
         // Handle error accordingly
       }
 
       setTypesOfJobs((prevTypes) => [...prevTypes, newTypeOfWork.trim()]);
       setNewTypeOfWork(""); // Clear the input field after adding
       setAddingNewTypeOfWork(false); // Stop adding a new type of work
-      setLoading(false);
+      setLoading({ ...loading, loading: false, type: "" });
     }
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setLoading({ ...loading, loading: true, type: "main" });
     try {
       // Fetch the current job counter
       const counterDocRef = doc(db, "counters", "jobCounter");
@@ -406,7 +413,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       // Update the job counter
 
       updateTaskData();
-      setLoading(false);
+      setLoading({ ...loading, loading: false, type: "" });
 
       // Close the modal
       setSidebarOpen((prevSidebarState) => ({
@@ -416,7 +423,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       }));
     } catch (error: any) {
       toast.error(error);
-      setLoading(false);
+      setLoading({ ...loading, loading: false, type: "" });
       console.error("Error handling form submission:", error);
     }
   };
@@ -466,47 +473,46 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                   leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                 >
                   <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-[1000px] sm:min-h-auto sm:px-16 sm:py-8">
-                    {loading ? (
+                    {loading.loading && loading.type === "main" ? (
                       <div className="flex w-full justify-center items-center min-h-[50vh]">
                         {" "}
                         <LoaderComp />
                       </div>
                     ) : (
                       <>
-                        <div>
-                          <div className="mt-1 text-center sm:my-1 ">
-                            <Dialog.Title
-                              as="h1"
-                              className="text-[32px] font-bold leading-6 text-gray-900  pb-6"
-                            >
-                              {sidebarOpen?.id?.length > 1
-                                ? "Update Job Sheet"
-                                : "Create Job Sheet"}
-                            </Dialog.Title>
-                            <div className="mt-2 text-[20px]">
-                              <form onSubmit={handleSubmit}>
-                                <div className="mt-2 flex flex-col grid grid-cols-2 gap-20 items-start">
-                                  <div className="w-full flex flex-col gap-y-[20px]">
-                                    <div>
-                                      <label
-                                        htmlFor="jobId"
-                                        className="flex ml-1.5 text-lg font-medium leading-6 text-gray-900"
-                                      >
-                                        Job Id
-                                      </label>
-                                      <div className="mt-2">
-                                        <input
-                                          type="jobId"
-                                          name="jobId"
-                                          value={jobId}
-                                          disabled
-                                          id="jobId"
-                                          className="block w-full text-md rounded-md border-0 p-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                          placeholder="you@example.com"
-                                        />
-                                      </div>
+                        <div className="mt-1 text-center sm:my-1 ">
+                          <Dialog.Title
+                            as="h1"
+                            className="text-[32px] font-bold leading-6 text-gray-900  pb-6"
+                          >
+                            {sidebarOpen?.id?.length > 1
+                              ? "Update Job Sheet"
+                              : "Create Job Sheet"}
+                          </Dialog.Title>
+                          <div className="mt-2 text-[20px]">
+                            <form onSubmit={handleSubmit}>
+                              <div className="mt-2 flex flex-col grid grid-cols-2 gap-20 items-start">
+                                <div className="w-full flex flex-col gap-y-[20px]">
+                                  <div>
+                                    <label
+                                      htmlFor="jobId"
+                                      className="flex ml-1.5 text-lg font-medium leading-6 text-gray-900"
+                                    >
+                                      Job Id
+                                    </label>
+                                    <div className="mt-2">
+                                      <input
+                                        type="jobId"
+                                        name="jobId"
+                                        value={jobId}
+                                        disabled
+                                        id="jobId"
+                                        className="block w-full text-md rounded-md border-0 p-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                        placeholder="you@example.com"
+                                      />
                                     </div>
-                                    {/* <label className="w-full flex">
+                                  </div>
+                                  {/* <label className="w-full flex">
                                       Task Title:
                                       <input
                                         name="title"
@@ -518,7 +524,13 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       />
                                     </label> */}
 
-                                    <div>
+                                  <div>
+                                    {loading.loading &&
+                                    loading.type === "jobType" ? (
+                                      <div className="max-h-[68px] py-2 flex justify-center w-full">
+                                        <LoaderComp height="55" />{" "}
+                                      </div>
+                                    ) : (
                                       <label className="flex justify-between text-lg font-medium leading-6 text-gray-900">
                                         Type of Work:
                                         {!isFieldDisabled() &&
@@ -549,149 +561,145 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                                 height: "30px",
                                                 width: "30px",
                                                 cursor: "pointer",
+                                                color: "blue",
                                               }}
-                                              className="hover:bg-blue-500  hover:text-white rounded-full p-1 ml-2"
+                                              className="hover:scale-125 rounded-full p-1 ml-2"
                                               onClick={() => {
                                                 setAddingNewTypeOfWork(true);
                                               }}
                                             />
                                           ))}
                                       </label>
-                                      {addingNewTypeOfWork ? ( // Step 5: Show input field and tick button when adding a new type of work
-                                        <>
-                                          <input
-                                            type="text"
-                                            name="newTypeOfWork"
-                                            value={newTypeOfWork}
-                                            onChange={handleInputChange}
-                                            className="block mt-2 w-full rounded-md border-0 p-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                            placeholder="Enter new type of work"
-                                          />
-                                        </>
-                                      ) : (
-                                        <>
-                                          <select
-                                            name="typeOfWork"
-                                            value={formData.typeOfWork}
-                                            onChange={handleInputChange}
-                                            required
-                                            className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                            disabled={isFieldDisabled()}
-                                          >
-                                            {formData.typeOfWork === "" && (
-                                              <option value="">
-                                                Select Type of Work
-                                              </option>
-                                            )}
-                                            {typesOfJobs.map(
-                                              (jobType, index) => (
-                                                <option
-                                                  key={jobType + index}
-                                                  value={jobType}
-                                                >
-                                                  {jobType}
-                                                </option>
-                                              )
-                                            )}
-                                          </select>
-                                        </>
+                                    )}
+                                    {addingNewTypeOfWork ? ( // Step 5: Show input field and tick button when adding a new type of work
+                                      <>
+                                        <input
+                                          type="text"
+                                          name="newTypeOfWork"
+                                          value={newTypeOfWork}
+                                          onChange={handleInputChange}
+                                          className="block mt-2 w-full rounded-md border-0 p-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                          placeholder="Enter new type of work"
+                                        />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <select
+                                          name="typeOfWork"
+                                          value={formData.typeOfWork}
+                                          onChange={handleInputChange}
+                                          required
+                                          className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                          disabled={isFieldDisabled()}
+                                        >
+                                          {formData.typeOfWork === "" && (
+                                            <option value="">
+                                              Select Type of Work
+                                            </option>
+                                          )}
+                                          {typesOfJobs.map((jobType, index) => (
+                                            <option
+                                              key={jobType + index}
+                                              value={jobType}
+                                            >
+                                              {jobType}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </>
+                                    )}
+                                  </div>
+
+                                  <div>
+                                    <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                      Job Status:
+                                    </label>
+
+                                    <select
+                                      name="jobStatus"
+                                      value={formData.jobStatus}
+                                      onChange={handleInputChange}
+                                      className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                    >
+                                      {!isFieldDisabled() && (
+                                        <option value="unassigned">
+                                          Unassigned
+                                        </option>
                                       )}
-                                    </div>
+                                      <option value="notstarted">
+                                        Not Started
+                                      </option>
+                                      <option value="inprogress">
+                                        In Progress
+                                      </option>
+                                      <option value="completed">
+                                        Completed
+                                      </option>
+                                      <option value="handover">Handover</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                      Employee to be assigned:
+                                    </label>
 
+                                    <select
+                                      name="employeeAssigned"
+                                      value={formData.employeeAssigned}
+                                      onChange={handleInputChange}
+                                      className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                      disabled={isFieldDisabled()}
+                                    >
+                                      <option value="">Select Employee</option>
+                                      {list.map((employee, index) => (
+                                        <option
+                                          key={employee.displayName + index}
+                                          value={employee.displayName}
+                                        >
+                                          {employee.displayName}
+                                        </option>
+                                      ))}{" "}
+                                      {/* Add more options as needed */}
+                                    </select>
+                                  </div>
+
+                                  <div className="flex  gap-x-16">
                                     <div>
                                       <label className="flex text-lg font-medium leading-6 text-gray-900">
-                                        Job Status:
+                                        PP (1 PP = 6 mins):
                                       </label>
 
-                                      <select
-                                        name="jobStatus"
-                                        value={formData.jobStatus}
+                                      <input
+                                        type="number"
+                                        name="pp"
+                                        value={formData.pp}
                                         onChange={handleInputChange}
-                                        className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                      >
-                                        {!isFieldDisabled() && (
-                                          <option value="unassigned">
-                                            Unassigned
-                                          </option>
-                                        )}
-                                        <option value="notstarted">
-                                          Not Started
-                                        </option>
-                                        <option value="inprogress">
-                                          In Progress
-                                        </option>
-                                        <option value="completed">
-                                          Completed
-                                        </option>
-                                        <option value="handover">
-                                          Handover
-                                        </option>
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <label className="flex text-lg font-medium leading-6 text-gray-900">
-                                        Employee to be assigned:
-                                      </label>
-
-                                      <select
-                                        name="employeeAssigned"
-                                        value={formData.employeeAssigned}
-                                        onChange={handleInputChange}
-                                        className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                        required
+                                        min="1"
                                         disabled={isFieldDisabled()}
-                                      >
-                                        <option value="">
-                                          Select Employee
-                                        </option>
-                                        {list.map((employee, index) => (
-                                          <option
-                                            key={employee.displayName + index}
-                                            value={employee.displayName}
-                                          >
-                                            {employee.displayName}
-                                          </option>
-                                        ))}{" "}
-                                        {/* Add more options as needed */}
-                                      </select>
+                                        className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                      />
                                     </div>
+                                    <div>
+                                      <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                        Number of Slides:
+                                      </label>
 
-                                    <div className="flex  gap-x-16">
-                                      <div>
-                                        <label className="flex text-lg font-medium leading-6 text-gray-900">
-                                          PP (1 PP = 6 mins):
-                                        </label>
-
-                                        <input
-                                          type="number"
-                                          name="pp"
-                                          value={formData.pp}
-                                          onChange={handleInputChange}
-                                          required
-                                          min="1"
-                                          disabled={isFieldDisabled()}
-                                          className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="flex text-lg font-medium leading-6 text-gray-900">
-                                          Number of Slides:
-                                        </label>
-
-                                        <input
-                                          type="number"
-                                          name="numberOfSlides"
-                                          value={formData.numberOfSlides}
-                                          onChange={handleInputChange}
-                                          required
-                                          min="1"
-                                          className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                          disabled={isFieldDisabled()}
-                                        />
-                                      </div>
+                                      <input
+                                        type="number"
+                                        name="numberOfSlides"
+                                        value={formData.numberOfSlides}
+                                        onChange={handleInputChange}
+                                        required
+                                        min="1"
+                                        className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                        disabled={isFieldDisabled()}
+                                      />
                                     </div>
                                   </div>
-                                  <div className="w-full flex flex-col gap-y-[20px] ">
-                                    {/* <label className="w-full flex">
+                                </div>
+                                <div className="w-full flex flex-col gap-y-[20px] ">
+                                  {/* <label className="w-full flex">
                                       Start Date/Time:
                                       <input
                                         type="datetime-local"
@@ -712,257 +720,296 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         className="ml-5 border my-1"
                                       />
                                     </label> */}
-                                    <div>
-                                      <label className="flex text-lg font-medium leading-6 text-gray-900">
-                                        Deadline :
-                                      </label>
-                                      <input
-                                        type="datetime-local"
-                                        name="deadline"
-                                        value={formData.deadline}
-                                        onChange={handleInputChange}
-                                        className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                        disabled={isFieldDisabled()}
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="flex text-lg font-medium leading-6 text-gray-900">
-                                        Instructions:
-                                      </label>
+                                  <div>
+                                    <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                      Deadline :
+                                    </label>
+                                    <input
+                                      type="datetime-local"
+                                      name="deadline"
+                                      value={formData.deadline}
+                                      onChange={handleInputChange}
+                                      className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                      disabled={isFieldDisabled()}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                      Instructions:
+                                    </label>
 
-                                      <textarea
-                                        name="instructions"
-                                        value={formData.instructions}
-                                        onChange={handleTextareaChange}
-                                        disabled={isFieldDisabled()}
-                                        className="mt-2 block w-full min-h-[100px] rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                      />
-                                    </div>
+                                    <textarea
+                                      name="instructions"
+                                      value={formData.instructions}
+                                      onChange={handleTextareaChange}
+                                      disabled={isFieldDisabled()}
+                                      className="mt-2 block w-full min-h-[100px] rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                    />
+                                  </div>
 
-                                    {/* Other form fields go here */}
-                                    {/* ... */}
+                                  {/* Other form fields go here */}
+                                  {/* ... */}
 
+                                  {
                                     <div className="flex gap-x-8">
-                                      <label className="w-fit flex items-center text-left">
+                                      <label className="w-fit min-w-[109px] flex items-center text-left">
                                         Source Files:
                                       </label>
 
-                                      {!isFieldDisabled() && (
+                                      {loading.loading &&
+                                      loading.type === "sourceFiles" ? (
+                                        <div className="max-h-[68px] py-2  flex justify-center w-full">
+                                          <LoaderComp height="35" />{" "}
+                                        </div>
+                                      ) : (
+                                        <>
+                                          {!isFieldDisabled() && (
+                                            <input
+                                              type="file"
+                                              name="sourceFiles"
+                                              ref={sourceFileInputRef}
+                                              onChange={handleFileUpload}
+                                              multiple
+                                              className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
+                                              accept=".pdf,.doc,.docx,.ppt,.pptx"
+                                              disabled={isFieldDisabled()}
+                                            />
+                                          )}
+                                          {formData.sourceFiles.length > 0 ? (
+                                            <div className="flex gap-x-[20px]">
+                                              <ul>
+                                                {formData.sourceFiles.map(
+                                                  (file, index) => (
+                                                    <li
+                                                      key={index}
+                                                      className="flex items-center"
+                                                    >
+                                                      <a
+                                                        href={file.url} // Assuming 'url' is the property containing the file URL
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="file-link hover:underline hover:text-blue-500"
+                                                      >
+                                                        {file.name.length > 22
+                                                          ? file.name.substring(
+                                                              0,
+                                                              22
+                                                            ) + "..."
+                                                          : file.name}
+                                                      </a>
+                                                      {!isFieldDisabled() && (
+                                                        <>
+                                                          <TrashIcon
+                                                            title="Delete task"
+                                                            style={{
+                                                              height: "25px",
+                                                              width: "25px",
+                                                              cursor: "pointer",
+                                                              color: "red",
+                                                            }}
+                                                            className="color-red-500 rounded-full p-1 hover:scale-125"
+                                                            onClick={() =>
+                                                              handleFileDelete(
+                                                                file.id,
+                                                                "source"
+                                                              )
+                                                            }
+                                                          />
+                                                          {index === 0 && (
+                                                            <PlusIcon
+                                                              title="Add job"
+                                                              className="hover:scale-125"
+                                                              style={{
+                                                                height: "18px",
+                                                                width: "18px",
+                                                                cursor:
+                                                                  "pointer",
+                                                                color: "blue",
+                                                              }}
+                                                              onClick={() => {
+                                                                if (
+                                                                  sourceFileInputRef.current
+                                                                ) {
+                                                                  sourceFileInputRef.current.click();
+                                                                }
+                                                              }}
+                                                            />
+                                                          )}
+                                                        </>
+                                                      )}
+                                                    </li>
+                                                  )
+                                                )}
+                                              </ul>
+                                            </div>
+                                          ) : (
+                                            <span
+                                              className="border text-[16px] p-1 cursor-pointer hover:bg-gray-200 rounded-lg"
+                                              onClick={() => {
+                                                if (
+                                                  sourceFileInputRef.current
+                                                ) {
+                                                  sourceFileInputRef.current.click();
+                                                }
+                                              }}
+                                            >
+                                              {/* Customize the appearance of the label */}
+                                              Choose Files
+                                            </span>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  }
+
+                                  <div className="flex gap-x-8">
+                                    <label className="w-fit min-w-[109px] flex items-center text-left ">
+                                      Submit Files:
+                                    </label>
+
+                                    {loading.loading &&
+                                    loading.type === "submitFiles" ? (
+                                      <div className="max-h-[68px] py-2 flex justify-center w-full">
+                                        <LoaderComp height="55" />{" "}
+                                      </div>
+                                    ) : (
+                                      <>
                                         <input
                                           type="file"
-                                          name="sourceFiles"
-                                          ref={sourceFileInputRef}
+                                          name="submitFiles"
+                                          ref={submitFileInputRef}
                                           onChange={handleFileUpload}
                                           multiple
                                           className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
                                           accept=".pdf,.doc,.docx,.ppt,.pptx"
                                           disabled={isFieldDisabled()}
                                         />
-                                      )}
-                                      {formData.sourceFiles.length > 0 ? (
-                                        <div className="flex gap-x-[20px]">
-                                          <ul>
-                                            {formData.sourceFiles.map(
-                                              (file, index) => (
-                                                <li
-                                                  key={index}
-                                                  className="flex items-center"
-                                                >
-                                                  <a
-                                                    href={file.url} // Assuming 'url' is the property containing the file URL
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="file-link hover:underline hover:text-blue-500"
+                                        {formData.submitFiles.length > 0 ? (
+                                          <div className="flex gap-x-[20px]">
+                                            <ul>
+                                              {formData.submitFiles.map(
+                                                (file, index) => (
+                                                  <li
+                                                    key={index}
+                                                    className="flex items-center"
                                                   >
-                                                    {file.name}
-                                                  </a>
-                                                  {!isFieldDisabled() && (
-                                                    <>
-                                                      <TrashIcon
-                                                        title="Delete task"
-                                                        style={{
-                                                          height: "25px",
-                                                          width: "25px",
-                                                          cursor: "pointer",
-                                                          color: "red",
-                                                        }}
-                                                        className="color-red-500 rounded-full p-1"
-                                                        onClick={() =>
-                                                          handleFileDelete(
-                                                            file.id,
-                                                            "source"
-                                                          )
-                                                        }
-                                                      />
-                                                      {index === 0 && (
-                                                        <PlusIcon
-                                                          title="Add job"
+                                                    <a
+                                                      href={file.url} // Assuming 'url' is the property containing the file URL
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="file-link hover:underline hover:text-blue-500"
+                                                    >
+                                                      {file.name.length > 22
+                                                        ? file.name.substring(
+                                                            0,
+                                                            22
+                                                          ) + "..."
+                                                        : file.name}
+                                                    </a>
+                                                    {!isFieldDisabled() && (
+                                                      <>
+                                                        <TrashIcon
+                                                          title="Delete task"
                                                           style={{
-                                                            height: "18px",
-                                                            width: "18px",
+                                                            height: "25px",
+                                                            width: "25px",
                                                             cursor: "pointer",
-                                                            color: "blue",
+                                                            color: "red",
                                                           }}
-                                                          onClick={() => {
-                                                            if (
-                                                              sourceFileInputRef.current
-                                                            ) {
-                                                              sourceFileInputRef.current.click();
-                                                            }
-                                                          }}
+                                                          className="color-red-500 rounded-full p-1 hover:scale-125"
+                                                          onClick={() =>
+                                                            handleFileDelete(
+                                                              file.id,
+                                                              "submit"
+                                                            )
+                                                          }
                                                         />
-                                                      )}
-                                                    </>
-                                                  )}
-                                                </li>
-                                              )
-                                            )}
-                                          </ul>
-                                        </div>
-                                      ) : (
-                                        <span
-                                          className="border text-[16px]  p-1 cursor-pointer hover:bg-gray-200 rounded-lg"
-                                          onClick={() => {
-                                            if (sourceFileInputRef.current) {
-                                              sourceFileInputRef.current.click();
-                                            }
-                                          }}
-                                        >
-                                          {/* Customize the appearance of the label */}
-                                          Choose Files
-                                        </span>
-                                      )}
-                                    </div>
-
-                                    <div className="flex gap-x-8">
-                                      <label className="w-fit flex items-center text-left ">
-                                        Submit Files:
-                                      </label>
-
-                                      <input
-                                        type="file"
-                                        name="submitFiles"
-                                        ref={submitFileInputRef}
-                                        onChange={handleFileUpload}
-                                        multiple
-                                        className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
-                                        accept=".pdf,.doc,.docx,.ppt,.pptx"
-                                        disabled={isFieldDisabled()}
-                                      />
-                                      {formData.submitFiles.length > 0 ? (
-                                        <div className="flex gap-x-[20px]">
-                                          <ul>
-                                            {formData.submitFiles.map(
-                                              (file, index) => (
-                                                <li
-                                                  key={index}
-                                                  className="flex items-center"
-                                                >
-                                                  <a
-                                                    href={file.url} // Assuming 'url' is the property containing the file URL
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="file-link hover:underline hover:text-blue-500"
-                                                  >
-                                                    {file.name}
-                                                  </a>
-                                                  {!isFieldDisabled() && (
-                                                    <>
-                                                      <TrashIcon
-                                                        title="Delete task"
-                                                        style={{
-                                                          height: "25px",
-                                                          width: "25px",
-                                                          cursor: "pointer",
-                                                          color: "red",
-                                                        }}
-                                                        className="color-red-500 rounded-full p-1"
-                                                        onClick={() =>
-                                                          handleFileDelete(
-                                                            file.id,
-                                                            "submit"
-                                                          )
-                                                        }
-                                                      />
-                                                      {index === 0 && (
-                                                        <PlusIcon
-                                                          title="Add job"
-                                                          style={{
-                                                            height: "18px",
-                                                            width: "18px",
-                                                            cursor: "pointer",
-                                                            color: "blue",
-                                                          }}
-                                                          onClick={() => {
-                                                            if (
-                                                              submitFileInputRef.current
-                                                            ) {
-                                                              submitFileInputRef.current.click();
-                                                            }
-                                                          }}
-                                                        />
-                                                      )}
-                                                    </>
-                                                  )}
-                                                </li>
-                                              )
-                                            )}
-                                          </ul>
-                                        </div>
-                                      ) : (
-                                        <span
-                                          className="border text-[16px]  p-1 cursor-pointer hover:bg-gray-200 rounded-lg"
-                                          onClick={() => {
-                                            if (submitFileInputRef.current) {
-                                              submitFileInputRef.current.click();
-                                            }
-                                          }}
-                                        >
-                                          {/* Customize the appearance of the label */}
-                                          Choose Files
-                                        </span>
-                                      )}
-                                    </div>
+                                                        {index === 0 && (
+                                                          <PlusIcon
+                                                            title="Add job"
+                                                            className="hover:scale-125"
+                                                            style={{
+                                                              height: "18px",
+                                                              width: "18px",
+                                                              cursor: "pointer",
+                                                              color: "blue",
+                                                            }}
+                                                            onClick={() => {
+                                                              if (
+                                                                submitFileInputRef.current
+                                                              ) {
+                                                                submitFileInputRef.current.click();
+                                                              }
+                                                            }}
+                                                          />
+                                                        )}
+                                                      </>
+                                                    )}
+                                                  </li>
+                                                )
+                                              )}
+                                            </ul>
+                                          </div>
+                                        ) : (
+                                          <span
+                                            className="border text-[16px] p-1 cursor-pointer hover:bg-gray-200 rounded-lg"
+                                            onClick={() => {
+                                              if (submitFileInputRef.current) {
+                                                submitFileInputRef.current.click();
+                                              }
+                                            }}
+                                          >
+                                            {/* Customize the appearance of the label */}
+                                            Choose Files
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="flex w-full gap-x-20 ">
-                                  <button
-                                    title="Submit"
-                                    type="submit"
-                                    // onClick={() => {
-                                    //   if (formData.jobStatus === "inprogress")
-                                    //     setFormData((prevData: any) => ({
-                                    //       ...prevData,
-                                    //       timer: addValueTime().timer,
-                                    //       startDate: addValueTime().startTime,
-                                    //     }));
-                                    // }}
-                                    className=" w-[50%] mt-8 justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                                  >
-                                    {sidebarOpen?.id?.length > 1
-                                      ? "Update"
-                                      : "Create"}
-                                  </button>
-                                  {/* <div className="mt-5 sm:mt-6"> */}
-                                  <button
-                                    type="button"
-                                    title="Cancel"
-                                    className=" w-[50%] justify-center rounded-md bg-red-600 mt-8 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                                    onClick={(event) => {
-                                      // Handle the event if needed
-                                      setSidebarOpen((prevSidebarState) => ({
-                                        ...prevSidebarState,
-                                        isOpen: !prevSidebarState.isOpen,
-                                        id: "",
-                                      }));
-                                    }}
-                                  >
-                                    Cancel
-                                  </button>
-                                  {/* </div> */}
-                                </div>
-                              </form>
-                            </div>
+                              </div>
+                              <div className="flex w-full gap-x-20 ">
+                                <button
+                                  title="Submit"
+                                  type="submit"
+                                  disabled={loading.loading}
+                                  // onClick={() => {
+                                  //   if (formData.jobStatus === "inprogress")
+                                  //     setFormData((prevData: any) => ({
+                                  //       ...prevData,
+                                  //       timer: addValueTime().timer,
+                                  //       startDate: addValueTime().startTime,
+                                  //     }));
+                                  // }}
+                                  className={`w-[50%] mt-8 ${
+                                    loading.loading
+                                      ? `cursor-not-allowed`
+                                      : `cursor-pointer`
+                                  } justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600`}
+                                >
+                                  {sidebarOpen?.id?.length > 1
+                                    ? "Update"
+                                    : "Create"}
+                                </button>
+                                {/* <div className="mt-5 sm:mt-6"> */}
+                                <button
+                                  type="button"
+                                  title="Cancel"
+                                  className=" w-[50%] justify-center rounded-md bg-red-600 mt-8 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                  onClick={(event) => {
+                                    // Handle the event if needed
+                                    setSidebarOpen((prevSidebarState) => ({
+                                      ...prevSidebarState,
+                                      isOpen: !prevSidebarState.isOpen,
+                                      id: "",
+                                    }));
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                                {/* </div> */}
+                              </div>
+                            </form>
                           </div>
                         </div>
                       </>

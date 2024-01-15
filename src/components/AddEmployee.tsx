@@ -81,15 +81,17 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
         await handleUpdateUser();
       }
       if (emailRef.current && passwordRef.current && nameRef.current) {
-        const response = await axios.post(
-          ` ${process.env.REACT_APP_API_URL}/createUser`,
-          {
+        const response = await axios
+          .post(` ${process.env.REACT_APP_API_URL}/createUser`, {
             email: emailRef.current.value,
             password: passwordRef.current.value,
             displayName: nameRef.current.value,
             role: type ? "task-creator" : "employee",
-          }
-        );
+          })
+          .catch((err) => {
+            toast.error(err.message);
+            console.log(err);
+          });
         updateTaskData();
 
         toast.success("user created successfully");
@@ -119,10 +121,15 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
       const email = emailRef?.current?.value;
 
       // Make a PUT request to your API endpoint
-      const response = await axios.put(
-        `${process.env.REACT_APP_API_URL}/updateUser/${uid}`,
-        { displayName, email }
-      );
+      const response = await axios
+        .put(`${process.env.REACT_APP_API_URL}/updateUser/${uid}`, {
+          displayName,
+          email,
+        })
+        .catch((err) => {
+          toast.error(err.message);
+          console.log(err);
+        });
 
       // Update the employaasigned field in the task documents
       const taskQuerySnapshot = await getDocs(collection(db, "tasks"));
