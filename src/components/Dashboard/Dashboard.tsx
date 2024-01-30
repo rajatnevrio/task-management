@@ -45,12 +45,11 @@ const Dashboard = () => {
     const taskCollection = collection(db, "tasks");
     setLoading(true);
     try {
-      const querySnapshot =
-        currentUser.role === "admin" || "task-creator"
-          ? await getDocs(taskCollection)
-          : await getDocs(
-              query(taskCollection, where("employeeAssigned", "==", `${name2}`))
-            );
+      const querySnapshot = await getDocs(
+        currentUser.role === "admin" || currentUser.role === "task-creator"
+          ? taskCollection
+          : query(taskCollection, where("employeeAssigned", "==", `${name2}`))
+      );
 
       // Convert the query snapshot to an array of objects
       const tasksArray = querySnapshot.docs.map((doc) => {
