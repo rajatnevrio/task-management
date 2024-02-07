@@ -9,8 +9,8 @@ class AdminController {
       const result = await adminModel.createUser({ email, password, displayName,role:userRole });
       res.status(200).json(result);
     } catch (error) {
-      console.error("Error creating user:", error);
-      res.status(500).json({ error: "Error creating user" });
+      console.error("Error creating user:", error.message);
+      res.status(500).json({ error: error.message });
     }
   }
 

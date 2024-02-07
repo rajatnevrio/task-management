@@ -89,12 +89,14 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
             role: type ? "task-creator" : "employee",
           })
           .catch((err) => {
-            toast.error(err.message);
-            console.log(err);
+            toast.error(err.response.data.error);
+            console.log(err.response.data.error);
           });
         updateTaskData();
 
-        toast.success("user created successfully");
+        if (response) {
+          toast.success("user created successfully");
+        }
         setModalState((prev) => ({
           ...prev,
           isOpen: !modalState.isOpen,
