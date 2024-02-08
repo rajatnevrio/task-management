@@ -20,7 +20,7 @@ function Profile() {
             setModal={setModal}
           />
           <span
-            className="underline text-blue-500 cursor-pointer text-lg font-semibold"
+            className="underline text-blue-500 cursor-pointer   text-lg font-semibold"
             onClick={() => setModal(!modal)}
           >
             {" "}
@@ -30,24 +30,24 @@ function Profile() {
       ) : (
         <div className="bg-white p-6 sm:max-w-[360px] rounded-lg shadow-md">
           <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-700">Name</h3>
+            <h3 className="text-lg font-semibold text-gray-700 py-3">Name</h3>
             <p className="text-xl text-gray-900">{currentUser?.displayName}</p>
           </div>
           <hr className="my-2 border-t border-gray-300" />
           <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-700">Email</h3>
+            <h3 className="text-lg font-semibold text-gray-700 py-3">Email</h3>
             <p className="text-xl text-gray-900">{currentUser?.email}</p>
           </div>
           <hr className="my-2 border-t border-gray-300" />
           <div>
-            <h3 className="text-lg font-semibold text-gray-700">Role</h3>
+            <h3 className="text-lg font-semibold text-gray-700 py-3">Role</h3>
             <p className="text-xl text-gray-900">{currentUser?.role}</p>
           </div>
         </div>
       )}
       {!modal && (
         <span
-          className="underline text-blue-500 cursor-pointer text-lg font-semibold"
+          className="underline text-blue-500 cursor-pointer  mt-6 text-lg font-semibold"
           onClick={() => setModal(!modal)}
         >
           {" "}
