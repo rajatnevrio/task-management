@@ -6,6 +6,7 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword
 } from "firebase/auth";
 import LoaderComp from "../components/Loader";
 import axios from "axios";
@@ -60,6 +61,9 @@ export function AuthProvider({ children }) {
     return sendPasswordResetEmail(auth, email);
   }
 
+  function changePassword(newPassword) {
+    return updatePassword(auth.currentUser, newPassword);
+  }
 
 
   const getDetails = async(uid)=>{
@@ -89,6 +93,7 @@ export function AuthProvider({ children }) {
     login,
     logout,
     resetPassword,
+    changePassword
   };
 
   return (
