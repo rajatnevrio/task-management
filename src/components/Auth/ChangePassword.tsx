@@ -29,7 +29,7 @@ const ChangePassword: React.FC<ChangePasswordProps> = ({
       setLoading(true);
       if (newPasswordRef.current) {
         await changePassword(newPasswordRef.current.value);
-        toast.success("password changed successfully");
+        toast.success("Password Changed Successfully");
         setModal(false);
       }
     } catch (error: any) {
