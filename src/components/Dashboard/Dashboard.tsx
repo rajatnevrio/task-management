@@ -111,7 +111,7 @@ const Dashboard = () => {
                     id: "",
                   }));
                 }}
-                className=" hover:scale-125 h-12 my-4 shadow-md mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
+                className=" hover:scale-x-105 h-12 my-4 shadow-md mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
               >
                 Create Job
               </button>
