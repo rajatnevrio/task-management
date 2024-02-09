@@ -664,40 +664,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                     </select>
                                   </div>
 
-                                  <div className="flex  gap-x-16">
-                                    <div>
-                                      <label className="flex text-lg font-medium leading-6 text-gray-900">
-                                        PP (1 PP = 6 mins):
-                                      </label>
-
-                                      <input
-                                        type="number"
-                                        name="pp"
-                                        value={formData.pp}
-                                        onChange={handleInputChange}
-                                        required
-                                        min="1"
-                                        disabled={isFieldDisabled()}
-                                        className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="flex text-lg font-medium leading-6 text-gray-900">
-                                        Number of Slides:
-                                      </label>
-
-                                      <input
-                                        type="number"
-                                        name="numberOfSlides"
-                                        value={formData.numberOfSlides}
-                                        onChange={handleInputChange}
-                                        required
-                                        min="1"
-                                        className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                        disabled={isFieldDisabled()}
-                                      />
-                                    </div>
-                                  </div>
+                                  <div className="flex  gap-x-16"></div>
                                 </div>
                                 <div className="w-full flex flex-col gap-y-[20px] ">
                                   {/* <label className="w-full flex">
@@ -721,6 +688,38 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         className="ml-5 border my-1"
                                       />
                                     </label> */}
+                                  <div>
+                                    <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                      PP (1 PP = 6 mins):
+                                    </label>
+
+                                    <input
+                                      type="number"
+                                      name="pp"
+                                      value={formData.pp}
+                                      onChange={handleInputChange}
+                                      required
+                                      min="1"
+                                      disabled={isFieldDisabled()}
+                                      className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="flex text-lg font-medium leading-6 text-gray-900">
+                                      Number of Slides:
+                                    </label>
+
+                                    <input
+                                      type="number"
+                                      name="numberOfSlides"
+                                      value={formData.numberOfSlides}
+                                      onChange={handleInputChange}
+                                      required
+                                      min="1"
+                                      className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                      disabled={isFieldDisabled()}
+                                    />
+                                  </div>
                                   <div>
                                     <label className="flex text-lg font-medium leading-6 text-gray-900">
                                       Deadline :
@@ -747,224 +746,224 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       className="mt-2 block w-full min-h-[100px] rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                     />
                                   </div>
+                                </div>
+                              </div>
+                              {
+                                <div className="flex flex-col gap-x-8">
+                                  <label className="w-fit min-w-[109px] text-lg mb-4 font-medium leading-6 text-gray-900 flex items-center text-left">
+                                    Source Files:
+                                  </label>
 
-                                  {
-                                    <div className="flex gap-x-8">
-                                      <label className="w-fit min-w-[109px] flex items-center text-left">
-                                        Source Files:
-                                      </label>
-
-                                      {loading.loading &&
-                                      loading.type === "sourceFiles" ? (
-                                        <div className="max-h-[68px] py-2  flex justify-center w-full">
-                                          <LoaderComp height="35" />{" "}
-                                        </div>
-                                      ) : (
-                                        <>
-                                          {!isFieldDisabled() && (
-                                            <input
-                                              type="file"
-                                              name="sourceFiles"
-                                              ref={sourceFileInputRef}
-                                              onChange={handleFileUpload}
-                                              multiple
-                                              className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
-                                              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
-                                              disabled={isFieldDisabled()}
-                                            />
-                                          )}
-                                          {formData.sourceFiles.length > 0 ? (
-                                            <div className="flex gap-x-[20px]">
-                                              <ul>
-                                                {formData.sourceFiles.map(
-                                                  (file, index) => (
-                                                    <li
-                                                      key={index}
-                                                      className="flex items-center"
-                                                    >
-                                                      <a
-                                                        href={file.url} // Assuming 'url' is the property containing the file URL
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="file-link hover:underline hover:text-blue-500"
-                                                      >
-                                                        {file.name.length > 22
-                                                          ? file.name.substring(
-                                                              0,
-                                                              22
-                                                            ) + "..."
-                                                          : file.name}
-                                                      </a>
-                                                      {!isFieldDisabled() && (
-                                                        <>
-                                                          <TrashIcon
-                                                            title="Delete task"
-                                                            style={{
-                                                              height: "25px",
-                                                              width: "25px",
-                                                              cursor: "pointer",
-                                                              color: "red",
-                                                            }}
-                                                            className="color-red-500 rounded-full p-1 hover:scale-125"
-                                                            onClick={() =>
-                                                              handleFileDelete(
-                                                                file.id,
-                                                                "source"
-                                                              )
-                                                            }
-                                                          />
-                                                          {index === 0 && (
-                                                            <PlusIcon
-                                                              title="Add job"
-                                                              className="hover:scale-125"
-                                                              style={{
-                                                                height: "18px",
-                                                                width: "18px",
-                                                                cursor:
-                                                                  "pointer",
-                                                                color: "blue",
-                                                              }}
-                                                              onClick={() => {
-                                                                if (
-                                                                  sourceFileInputRef.current
-                                                                ) {
-                                                                  sourceFileInputRef.current.click();
-                                                                }
-                                                              }}
-                                                            />
-                                                          )}
-                                                        </>
-                                                      )}
-                                                    </li>
-                                                  )
-                                                )}
-                                              </ul>
-                                            </div>
-                                          ) : (
-                                            <span
-                                              className="border text-[16px] p-1 cursor-pointer hover:bg-gray-200 rounded-lg"
-                                              onClick={() => {
-                                                if (
-                                                  sourceFileInputRef.current
-                                                ) {
-                                                  sourceFileInputRef.current.click();
-                                                }
-                                              }}
-                                            >
-                                              {/* Customize the appearance of the label */}
-                                              Choose Files
-                                            </span>
-                                          )}
-                                        </>
-                                      )}
+                                  {loading.loading &&
+                                  loading.type === "sourceFiles" ? (
+                                    <div className="max-h-[68px] py-2  flex justify-center w-full">
+                                      <LoaderComp height="35" />{" "}
                                     </div>
-                                  }
-
-                                  <div className="flex gap-x-8">
-                                    <label className="w-fit min-w-[109px] flex items-center text-left ">
-                                      Submit Files:
-                                    </label>
-
-                                    {loading.loading &&
-                                    loading.type === "submitFiles" ? (
-                                      <div className="max-h-[68px] py-2 flex justify-center w-full">
-                                        <LoaderComp height="55" />{" "}
-                                      </div>
-                                    ) : (
-                                      <>
+                                  ) : (
+                                    <>
+                                      {!isFieldDisabled() && (
                                         <input
                                           type="file"
-                                          name="submitFiles"
-                                          ref={submitFileInputRef}
+                                          name="sourceFiles"
+                                          ref={sourceFileInputRef}
                                           onChange={handleFileUpload}
                                           multiple
                                           className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
                                           accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                                           disabled={isFieldDisabled()}
                                         />
-                                        {formData.submitFiles.length > 0 ? (
-                                          <div className="flex gap-x-[20px]">
-                                            <ul>
-                                              {formData.submitFiles.map(
-                                                (file, index) => (
-                                                  <li
-                                                    key={index}
-                                                    className="flex items-center"
+                                      )}
+                                      {formData.sourceFiles.length > 0 ? (
+                                        <div className="flex gap-x-[20px]">
+                                          <ul>
+                                            {formData.sourceFiles.map(
+                                              (file, index) => (
+                                                <li
+                                                  key={index}
+                                                  className="flex items-center"
+                                                >
+                                                  <a
+                                                    href={file.url} // Assuming 'url' is the property containing the file URL
+                                                    target="_blank"
+                                                    title={`${file.name}`}
+                                                    rel="noopener noreferrer"
+                                                    className="file-link hover:underline hover:text-blue-500"
                                                   >
-                                                    <a
-                                                      href={file.url} // Assuming 'url' is the property containing the file URL
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      className="file-link hover:underline hover:text-blue-500"
-                                                    >
-                                                      {file.name.length > 22
+                                                    {file.name}
+                                                    {/* {file.name.length > 22
+                                                          ? file.name.substring(
+                                                              0,
+                                                              22
+                                                            ) + "..."
+                                                          : file.name} */}
+                                                  </a>
+                                                  {!isFieldDisabled() && (
+                                                    <>
+                                                      <TrashIcon
+                                                        title="Delete task"
+                                                        style={{
+                                                          height: "25px",
+                                                          width: "25px",
+                                                          cursor: "pointer",
+                                                          color: "red",
+                                                        }}
+                                                        className="color-red-500 rounded-full p-1 hover:scale-125"
+                                                        onClick={() =>
+                                                          handleFileDelete(
+                                                            file.id,
+                                                            "source"
+                                                          )
+                                                        }
+                                                      />
+                                                      {index === 0 && (
+                                                        <PlusIcon
+                                                          title="Add job"
+                                                          className="hover:scale-125"
+                                                          style={{
+                                                            height: "18px",
+                                                            width: "18px",
+                                                            cursor: "pointer",
+                                                            color: "blue",
+                                                          }}
+                                                          onClick={() => {
+                                                            if (
+                                                              sourceFileInputRef.current
+                                                            ) {
+                                                              sourceFileInputRef.current.click();
+                                                            }
+                                                          }}
+                                                        />
+                                                      )}
+                                                    </>
+                                                  )}
+                                                </li>
+                                              )
+                                            )}
+                                          </ul>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className="border text-[16px] p-1  max-w-[120px] cursor-pointer hover:bg-gray-200 rounded-lg"
+                                          onClick={() => {
+                                            if (sourceFileInputRef.current) {
+                                              sourceFileInputRef.current.click();
+                                            }
+                                          }}
+                                        >
+                                          {/* Customize the appearance of the label */}
+                                          Choose Files
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              }
+
+                              <div className="flex flex-col mt-8 ">
+                                <label className="w-fit min-w-[109px] mb-4  text-lg font-medium leading-6 text-gray-900 flex items-center text-left ">
+                                  Submit Files:
+                                </label>
+
+                                {loading.loading &&
+                                loading.type === "submitFiles" ? (
+                                  <div className="max-h-[68px] py-2 flex justify-center w-full">
+                                    <LoaderComp height="55" />{" "}
+                                  </div>
+                                ) : (
+                                  <>
+                                    <input
+                                      type="file"
+                                      name="submitFiles"
+                                      ref={submitFileInputRef}
+                                      onChange={handleFileUpload}
+                                      multiple
+                                      className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
+                                      accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                                      disabled={isFieldDisabled()}
+                                    />
+                                    {formData.submitFiles.length > 0 ? (
+                                      <div className="flex gap-x-[20px]">
+                                        <ul>
+                                          {formData.submitFiles.map(
+                                            (file, index) => (
+                                              <li
+                                                key={index}
+                                                className="flex items-center"
+                                              >
+                                                <a
+                                                  href={file.url} // Assuming 'url' is the property containing the file URL
+                                                  target="_blank"
+                                                  title={`${file.name}`}
+                                                  rel="noopener noreferrer"
+                                                  className="file-link hover:underline hover:text-blue-500"
+                                                >
+                                                  {file.name}
+                                                  {/* {file.name.length > 22
                                                         ? file.name.substring(
                                                             0,
                                                             22
                                                           ) + "..."
-                                                        : file.name}
-                                                    </a>
-                                                    {!isFieldDisabled() && (
-                                                      <>
-                                                        <TrashIcon
-                                                          title="Delete task"
-                                                          style={{
-                                                            height: "25px",
-                                                            width: "25px",
-                                                            cursor: "pointer",
-                                                            color: "red",
-                                                          }}
-                                                          className="color-red-500 rounded-full p-1 hover:scale-125"
-                                                          onClick={() =>
-                                                            handleFileDelete(
-                                                              file.id,
-                                                              "submit"
-                                                            )
+                                                        : file.name} */}
+                                                </a>
+                                                {!isFieldDisabled() && (
+                                                  <>
+                                                    <TrashIcon
+                                                      title="Delete task"
+                                                      style={{
+                                                        height: "25px",
+                                                        width: "25px",
+                                                        cursor: "pointer",
+                                                        color: "red",
+                                                      }}
+                                                      className="color-red-500 rounded-full p-1 hover:scale-125"
+                                                      onClick={() =>
+                                                        handleFileDelete(
+                                                          file.id,
+                                                          "submit"
+                                                        )
+                                                      }
+                                                    />
+                                                    {index === 0 && (
+                                                      <PlusIcon
+                                                        title="Add job"
+                                                        className="hover:scale-125"
+                                                        style={{
+                                                          height: "18px",
+                                                          width: "18px",
+                                                          cursor: "pointer",
+                                                          color: "blue",
+                                                        }}
+                                                        onClick={() => {
+                                                          if (
+                                                            submitFileInputRef.current
+                                                          ) {
+                                                            submitFileInputRef.current.click();
                                                           }
-                                                        />
-                                                        {index === 0 && (
-                                                          <PlusIcon
-                                                            title="Add job"
-                                                            className="hover:scale-125"
-                                                            style={{
-                                                              height: "18px",
-                                                              width: "18px",
-                                                              cursor: "pointer",
-                                                              color: "blue",
-                                                            }}
-                                                            onClick={() => {
-                                                              if (
-                                                                submitFileInputRef.current
-                                                              ) {
-                                                                submitFileInputRef.current.click();
-                                                              }
-                                                            }}
-                                                          />
-                                                        )}
-                                                      </>
+                                                        }}
+                                                      />
                                                     )}
-                                                  </li>
-                                                )
-                                              )}
-                                            </ul>
-                                          </div>
-                                        ) : (
-                                          <span
-                                            className="border text-[16px] p-1 cursor-pointer hover:bg-gray-200 rounded-lg"
-                                            onClick={() => {
-                                              if (submitFileInputRef.current) {
-                                                submitFileInputRef.current.click();
-                                              }
-                                            }}
-                                          >
-                                            {/* Customize the appearance of the label */}
-                                            Choose Files
-                                          </span>
-                                        )}
-                                      </>
+                                                  </>
+                                                )}
+                                              </li>
+                                            )
+                                          )}
+                                        </ul>
+                                      </div>
+                                    ) : (
+                                      <span
+                                        className="border text-[16px]  max-w-[120px] p-1 cursor-pointer hover:bg-gray-200 rounded-lg"
+                                        onClick={() => {
+                                          if (submitFileInputRef.current) {
+                                            submitFileInputRef.current.click();
+                                          }
+                                        }}
+                                      >
+                                        {/* Customize the appearance of the label */}
+                                        Choose Files
+                                      </span>
                                     )}
-                                  </div>
-                                </div>
+                                  </>
+                                )}
                               </div>
                               <div className="flex w-full gap-x-20 ">
                                 <button

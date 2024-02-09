@@ -49,7 +49,7 @@ const ChangePassword: React.FC<ChangePasswordProps> = ({
       </div>
 
       <div className="mt-10  sm:w-full sm:max-w-[360px]">
-        <div className="bg-white px-6 py-12 shadow sm:rounded-lg sm:px-12">
+        <div className="bg-white px-3 py-12 shadow sm:rounded-lg sm:px-6">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="py-3">
               <label
