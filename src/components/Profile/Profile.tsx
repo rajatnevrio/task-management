@@ -45,7 +45,7 @@ function Profile() {
           </div>
         </div>
       )}
-      {!modal && (
+      {/* {!modal && (
         <span
           className="underline text-blue-500 cursor-pointer  mt-6 text-lg font-semibold"
           onClick={() => setModal(!modal)}
@@ -53,8 +53,8 @@ function Profile() {
           {" "}
           {loading ? "Loading..." : "Change Password"}{" "}
         </span>
-      )}
-      {/* 
+      )} */}
+      
            {!modal&&(<button
         type="submit"
         disabled={loading}
@@ -64,7 +64,7 @@ function Profile() {
         } focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600`}
       >
         {loading ? "Loading..." : "Change Password"}
-      </button>)} */}
+      </button>)}
     </div>
   );
 }

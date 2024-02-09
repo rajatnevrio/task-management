@@ -12,6 +12,7 @@ import { useAuth } from "../contexts/AuthContext";
 import ConfirmModal from "./ConfirmModal";
 import { toast } from "react-toastify";
 import CountdownTimer from "./CountDownTimer/CountDownTimer";
+import { statusOptions } from "./AddTaskDrawer";
 interface Task {
   [key: string]: string | number; // Adjust the type according to your task structure
 }
@@ -150,17 +151,17 @@ const TaskTable: React.FC<TaskTableProps> = ({
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">{element.pp}</td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
-          {element.jobStatus}
+          { statusOptions[element.jobStatus]}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {element.numberOfSlides}
         </td>
-        <td className="px-3 py-4 whitespace-nowrap border-r">
+        {/* <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDownloadLink(element.sourceFiles)}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDownloadLink(element.submitFiles)}
-        </td>
+        </td> */}
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDateTime(element.startDate)}
         </td>
@@ -234,8 +235,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
     "P.P",
     "Job Status",
     "Slides",
-    "Source Files",
-    "Submitted Files",
+    // "Source Files",
+    // "Submitted Files",
     "Start Date",
     "End Date",
     "Deadline",

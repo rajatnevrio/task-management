@@ -62,6 +62,13 @@ type LoadingState = {
   loading: boolean;
   type: string; // You can replace 'string' with the actual type you want
 };
+export const statusOptions: { [key: string]: string } = {
+  unassigned: "Unassigned",
+  notstarted: "Not Started",
+  inprogress: "In Progress",
+  completed: "Completed",
+  handover: "Handover",
+};
 const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   sidebarOpen,
   setSidebarOpen,
@@ -169,6 +176,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       }));
     }
   };
+
   const addValueTime = () => {
     const timer = new Date();
     const ppValue = formData.pp.toString();
@@ -621,21 +629,14 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       onChange={handleInputChange}
                                       className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
                                     >
-                                      {!isFieldDisabled() && (
-                                        <option value="unassigned">
-                                          Unassigned
-                                        </option>
-                                      )}
-                                      <option value="notstarted">
-                                        Not Started
-                                      </option>
-                                      <option value="inprogress">
-                                        In Progress
-                                      </option>
-                                      <option value="completed">
-                                        Completed
-                                      </option>
-                                      <option value="handover">Handover</option>
+                                      {!isFieldDisabled() &&
+                                        Object.entries(statusOptions).map(
+                                          ([value, label]) => (
+                                            <option key={value} value={value}>
+                                              {label}
+                                            </option>
+                                          )
+                                        )}
                                     </select>
                                   </div>
                                   <div>
@@ -747,9 +748,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                     />
                                   </div>
 
-                                  {/* Other form fields go here */}
-                                  {/* ... */}
-
                                   {
                                     <div className="flex gap-x-8">
                                       <label className="w-fit min-w-[109px] flex items-center text-left">
@@ -771,7 +769,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                               onChange={handleFileUpload}
                                               multiple
                                               className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
-                                              accept=".pdf,.doc,.docx,.ppt,.pptx"
+                                              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                                               disabled={isFieldDisabled()}
                                             />
                                           )}
@@ -881,7 +879,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                           onChange={handleFileUpload}
                                           multiple
                                           className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
-                                          accept=".pdf,.doc,.docx,.ppt,.pptx"
+                                          accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                                           disabled={isFieldDisabled()}
                                         />
                                         {formData.submitFiles.length > 0 ? (
