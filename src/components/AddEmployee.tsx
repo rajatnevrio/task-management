@@ -38,6 +38,7 @@ import LoaderComp from "./Loader";
 import { AddModalState, UserDetails } from "../types";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { getTypeLabel } from "./Employees/Employees";
 interface AddEmployeeProps {
   modalState: AddModalState;
   setModalState: Dispatch<SetStateAction<AddModalState>>;
@@ -86,7 +87,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
             email: emailRef.current.value,
             password: passwordRef.current.value,
             displayName: nameRef.current.value,
-            role: type ? "task-creator" : "employee",
+            role: type && getTypeLabel(type, "default"),
           })
           .catch((err) => {
             toast.error(err.response.data.error);
@@ -242,9 +243,8 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                             <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
                               {modalState.details.displayName.length > 1
                                 ? "Update"
-                                : type
-                                ? `Add Intake`
-                                : ` Add Employee`}
+                                : "Add"}{" "}
+                              {type && getTypeLabel(type, "button")}
                             </h2>
                           </div>
 

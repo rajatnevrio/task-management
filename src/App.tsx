@@ -55,7 +55,7 @@ const App: React.FC = () => {
               } />
               <Route path="/employees"   element={
                 <Layout>
-                  <Employees />
+                  <Employees type="employee" />
                 </Layout>
               } />
                <Route path="/intake-team"   element={

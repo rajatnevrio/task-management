@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import SideBar from "../SideBar";
 import { useAuth } from "../../contexts/AuthContext";
 import ChangePassword from "../Auth/ChangePassword";
+import Employees from "../Employees/Employees";
 
 function Profile() {
   const { currentUser } = useAuth();
@@ -65,6 +66,7 @@ function Profile() {
       >
         {loading ? "Loading..." : "Change Password"}
       </button>)}
+      <Employees type ={'admin'} />
     </div>
   );
 }

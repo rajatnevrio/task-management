@@ -573,7 +573,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                             </div>
                                           ) : (
                                             <PlusIcon
-                                              title="Add job"
+                                              title="Add type pf job"
                                               style={{
                                                 height: "30px",
                                                 width: "30px",
@@ -638,14 +638,13 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       onChange={handleInputChange}
                                       className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
                                     >
-                                      {
-                                        Object.entries(statusOptions).map(
-                                          ([value, label]) => (
-                                            <option key={value} value={value}>
-                                              {label}
-                                            </option>
-                                          )
-                                        )}
+                                      {Object.entries(statusOptions).map(
+                                        ([value, label]) => (
+                                          <option key={value} value={value}>
+                                            {label}
+                                          </option>
+                                        )
+                                      )}
                                     </select>
                                   </div>
                                   <div>
@@ -766,7 +765,8 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                   {loading.loading &&
                                   loading.type === "sourceFiles" ? (
                                     <div className="max-h-[68px] py-2  flex justify-center w-full">
-                                      <LoaderComp height="35" />{" "}
+                                      <LoaderComp height="35" /> Please wait,
+                                      the file is being uploaded.
                                     </div>
                                   ) : (
                                     <>
@@ -784,19 +784,19 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       )}
                                       {formData.sourceFiles.length > 0 ? (
                                         <div className="flex gap-x-[20px]">
-                                          <ul>
+                                          <ul className="list-disc">
                                             {formData.sourceFiles.map(
                                               (file, index) => (
                                                 <li
                                                   key={index}
-                                                  className="flex items-center"
+                                                  className="flex items-start"
                                                 >
                                                   <a
                                                     href={file.url} // Assuming 'url' is the property containing the file URL
                                                     target="_blank"
                                                     title={`${file.name}`}
                                                     rel="noopener noreferrer"
-                                                    className="file-link hover:underline hover:text-blue-500"
+                                                    className="file-link hover:underline text-start max-w-[95%] hover:text-blue-500"
                                                   >
                                                     {file.name}
                                                     {/* {file.name.length > 22
@@ -809,7 +809,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                                   {!isUserEmployee() && (
                                                     <>
                                                       <TrashIcon
-                                                        title="Delete task"
+                                                        title="Delete File"
                                                         style={{
                                                           height: "25px",
                                                           width: "25px",
@@ -826,7 +826,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                                       />
                                                       {index === 0 && (
                                                         <PlusIcon
-                                                          title="Add job"
+                                                          title="Add file"
                                                           className="hover:scale-125"
                                                           style={{
                                                             height: "18px",
@@ -876,7 +876,8 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                 {loading.loading &&
                                 loading.type === "submitFiles" ? (
                                   <div className="max-h-[68px] py-2 flex justify-center w-full">
-                                    <LoaderComp height="55" />{" "}
+                                    <LoaderComp height="55" /> Please wait, the
+                                    file is being uploaded.
                                   </div>
                                 ) : (
                                   <>
@@ -888,7 +889,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       multiple
                                       className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
                                       accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
-                                      disabled={!isUserEmployee()}
                                     />
                                     {formData.submitFiles.length > 0 ? (
                                       <div className="flex gap-x-[20px]">
@@ -897,14 +897,14 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                             (file, index) => (
                                               <li
                                                 key={index}
-                                                className="flex items-center"
+                                                className="flex items-start"
                                               >
                                                 <a
                                                   href={file.url} // Assuming 'url' is the property containing the file URL
                                                   target="_blank"
                                                   title={`${file.name}`}
                                                   rel="noopener noreferrer"
-                                                  className="file-link hover:underline hover:text-blue-500"
+                                                  className="file-link  text-start max-w-[95%] hover:underline hover:text-blue-500"
                                                 >
                                                   {file.name}
                                                   {/* {file.name.length > 22
@@ -915,48 +915,47 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                                         : file.name} */}
                                                 </a>
 
-                                                {isUserEmployee() &&
-                                                  !isDate24HoursAgo(
-                                                    formData.endDate
-                                                  ) && (
-                                                    <>
-                                                      <TrashIcon
-                                                        title="Delete task"
+                                                {!isDate24HoursAgo(
+                                                  formData.endDate
+                                                ) && (
+                                                  <>
+                                                    <TrashIcon
+                                                      title="Delete file"
+                                                      style={{
+                                                        height: "25px",
+                                                        width: "25px",
+                                                        cursor: "pointer",
+                                                        color: "red",
+                                                      }}
+                                                      className="color-red-500 rounded-full p-1 hover:scale-125"
+                                                      onClick={() =>
+                                                        handleFileDelete(
+                                                          file.id,
+                                                          "submit"
+                                                        )
+                                                      }
+                                                    />
+                                                    {index === 0 && (
+                                                      <PlusIcon
+                                                        title="Add file"
+                                                        className="hover:scale-125"
                                                         style={{
-                                                          height: "25px",
-                                                          width: "25px",
+                                                          height: "18px",
+                                                          width: "18px",
                                                           cursor: "pointer",
-                                                          color: "red",
+                                                          color: "blue",
                                                         }}
-                                                        className="color-red-500 rounded-full p-1 hover:scale-125"
-                                                        onClick={() =>
-                                                          handleFileDelete(
-                                                            file.id,
-                                                            "submit"
-                                                          )
-                                                        }
+                                                        onClick={() => {
+                                                          if (
+                                                            submitFileInputRef.current
+                                                          ) {
+                                                            submitFileInputRef.current.click();
+                                                          }
+                                                        }}
                                                       />
-                                                      {index === 0 && (
-                                                        <PlusIcon
-                                                          title="Add job"
-                                                          className="hover:scale-125"
-                                                          style={{
-                                                            height: "18px",
-                                                            width: "18px",
-                                                            cursor: "pointer",
-                                                            color: "blue",
-                                                          }}
-                                                          onClick={() => {
-                                                            if (
-                                                              submitFileInputRef.current
-                                                            ) {
-                                                              submitFileInputRef.current.click();
-                                                            }
-                                                          }}
-                                                        />
-                                                      )}
-                                                    </>
-                                                  )}
+                                                    )}
+                                                  </>
+                                                )}
                                               </li>
                                             )
                                           )}

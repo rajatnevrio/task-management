@@ -19,6 +19,37 @@ interface rolesApi {
 interface EmployeeProps {
   type?: string;
 }
+type TypeLabels = {
+  [key: string]: {
+    default: string;
+    title: string;
+    button: string;
+  };
+};
+export const typeLabels: TypeLabels = {
+  task_creator: {
+    default: "task-creator",
+    title: "Intake Team",
+    button: "Intake",
+  },
+  employee: {
+    default: "employee",
+    title: "Employees",
+    button: "Employee",
+  },
+  admin: {
+    default: "admin",
+    title: "Admins",
+    button: "Admin",
+  },
+};
+export const getTypeLabel = (type: string, context = "default"): string => {
+  const label = typeLabels[type];
+  if (typeof label === "object") {
+    return label[context as keyof typeof label] || label.default;
+  }
+  return label || "Unknown";
+};
 function Employees({ type }: EmployeeProps) {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState<boolean>(false);
@@ -33,33 +64,32 @@ function Employees({ type }: EmployeeProps) {
   });
   const [list, setList] = useState<rolesApi[]>([]);
 
-
   const navigate = useNavigate();
   const updateData = () => {
-    getData()
+    getData();
   };
 
   const getData = async () => {
-    setLoading(true)
-
+    setLoading(true);
     try {
       // Replace the API call with the getAllUsers API using Axios
       const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/getUsersByRole/${type? `task-creator`:`employee`}`
+        `${process.env.REACT_APP_API_URL}/getUsersByRole/${
+          type && getTypeLabel(type, "default")
+        }`
       );
 
       const users = response.data;
-      setLoading(false)
+      setLoading(false);
 
       setList(users);
     } catch (error: any) {
-      setLoading(false)
+      setLoading(false);
 
       console.error("Error fetching user data:", error.message);
       // Handle error accordingly, e.g., show an error message to the user
     }
   };
-
 
   useEffect(() => {
     getData();
@@ -81,14 +111,16 @@ function Employees({ type }: EmployeeProps) {
           <LoaderComp />
         </div>
       ) : (
-        <div className="m-8  w-full flex flex-col">
+        <div
+          className={`${type !== "admin" ? "m-8" : ""}  w-full flex flex-col`}
+        >
           <div className="flex w-full justify-between ">
             <span className=" flex items-center justify-center text-4xl font-semibold">
-              {type ? `Intake Team` : `Employees`}
+              {type && getTypeLabel(type, "title")}
             </span>
             {currentUser.role === "admin" && (
               <button
-                title={type ? `Add Intake` : `Add Employee`}
+                title={type && getTypeLabel(type, "button")}
                 onClick={() => {
                   setModalState((prev) => ({
                     ...prev,
@@ -97,18 +129,25 @@ function Employees({ type }: EmployeeProps) {
                 }}
                 className="h-12 my-4 mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
               >
-                {type ? `Add Intake` : `Add Employee`}
+                Add {type && getTypeLabel(type, "button")}
               </button>
             )}
           </div>
+
           <div className=" overflow-y-auto">
-            <EmployeesTable
-            list={list}
-              modalState={modalState}
-              setModalState={setModalState}
-              updateTaskData={updateData}
-              type={type}
-            />
+            {list.length > 0 ? (
+              <EmployeesTable
+                list={list}
+                modalState={modalState}
+                setModalState={setModalState}
+                updateTaskData={updateData}
+                type={type}
+              />
+            ) : (
+              <p className="flex text-xl justify-center items-center h-[300px]">
+                No {type && getTypeLabel(type, "button")} found
+              </p>
+            )}
           </div>
           {modalState.isOpen && (
             <AddEmployee
