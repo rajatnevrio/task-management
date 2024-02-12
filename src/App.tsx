@@ -40,6 +40,14 @@ const App: React.FC = () => {
 
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/signup" element={<SignUpPage />} />
+            <Route
+              path="/completed-jobs"
+              element={
+                <Layout>
+                  <DashboardPage type="completed_jobs" />
+                </Layout>
+              }
+            />
             <Route path="/Profile"   element={
                 <Layout>
                   <ProfilePage />
@@ -50,7 +58,7 @@ const App: React.FC = () => {
                   <Employees />
                 </Layout>
               } />
-               <Route path="/task-creators"   element={
+               <Route path="/intake-team"   element={
                 <Layout>
                   <Employees type="task_creator" />
                 </Layout>

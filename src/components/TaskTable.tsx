@@ -1,4 +1,3 @@
-// TaskTable.tsx
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useTable, Column } from "react-table";
 import {
@@ -24,6 +23,7 @@ interface TaskTableProps {
   taskArray: Task[];
   setSidebarOpen: Dispatch<SetStateAction<{ isOpen: boolean; id: string }>>;
   updateTaskData: () => void;
+  type?: string;
 }
 interface ModalState {
   isOpen: boolean;
@@ -34,6 +34,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
   taskArray,
   setSidebarOpen,
   updateTaskData,
+  type,
 }) => {
   const columns: Column<Task>[] = React.useMemo(
     () =>
@@ -68,13 +69,22 @@ const TaskTable: React.FC<TaskTableProps> = ({
     }
   };
 
-  const sortedTaskArray = [...taskArray].sort((a, b) => {
-    // Extract the numeric part from the titleId and convert to numbers for comparison
-    const aTitleIdNumber = parseInt((a.titleId as string).slice(6), 10);
-    const bTitleIdNumber = parseInt((b.titleId as string).slice(6), 10);
+  const sortedTaskArray = taskArray
+    .filter((task) => {
+      if (currentUser.role === "admin" && type === "completed_jobs") {
+        return task.jobStatus === "completed"; // Filter tasks with jobStatus "completed" only for admin users
+      } else if (currentUser.role === "admin" && type !== "completed_jobs") {
+        return task.jobStatus !== "completed";
+      } else {
+        return true; // Allow all tasks for non-admin users
+      }
+    })
+    .sort((a, b) => {
+      const aTitleIdNumber = parseInt((a.titleId as string).slice(6), 10);
+      const bTitleIdNumber = parseInt((b.titleId as string).slice(6), 10);
 
-    return bTitleIdNumber - aTitleIdNumber;
-  });
+      return bTitleIdNumber - aTitleIdNumber; // Sort based on titleId
+    });
 
   const tableRows = sortedTaskArray.map((element, index) => {
     const timestamp = element.createdAt;
@@ -151,7 +161,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">{element.pp}</td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
-          { statusOptions[element.jobStatus]}
+          {statusOptions[element.jobStatus]}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {element.numberOfSlides}

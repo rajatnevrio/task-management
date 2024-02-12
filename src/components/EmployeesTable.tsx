@@ -1,4 +1,3 @@
-// TaskTable.tsx
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useTable, Column } from "react-table";
 import axios from "axios";

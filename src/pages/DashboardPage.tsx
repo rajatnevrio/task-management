@@ -1,10 +1,14 @@
-import React from 'react';
-import Dashboard from '../components/Dashboard/Dashboard';
+import React from "react";
+import Dashboard from "../components/Dashboard/Dashboard";
 
-const DashboardPage: React.FC = () => {
+interface DashboardPageProps {
+  type?: string;
+}
+
+const DashboardPage: React.FC<DashboardPageProps> = ({ type }) => {
   return (
     <>
-      <Dashboard />
+      <Dashboard type={type} />
     </>
   );
 };

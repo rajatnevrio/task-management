@@ -216,6 +216,16 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       throw error; // Re-throw the error for handling in the calling code
     }
   };
+  function isDate24HoursAgo(dateString: string): boolean {
+    const inputDate: Date = new Date(dateString);
+    const currentTime: Date = new Date();
+    // Calculate the time difference in milliseconds
+    const timeDifference: number = currentTime.getTime() - inputDate.getTime();
+    // Calculate the time difference in hours
+    const hoursDifference: number = timeDifference / (1000 * 60 * 60);
+    // Return true if the time difference is less than or equal to 24 hours, otherwise false
+    return hoursDifference >= 24;
+  }
   const updateDocById = async (docId: string, updatedData: any) => {
     try {
       const docRef = doc(collection(db, "tasks"), docId);
@@ -225,9 +235,8 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       throw error;
     }
   };
-  const isFieldDisabled = () => userDetails?.role === "employee";
+  const isUserEmployee = () => userDetails?.role === "employee";
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("first", e.target.name);
     setLoading({ ...loading, loading: true, type: `${e.target.name}` });
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -528,7 +537,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                         onChange={handleInputChange}
                                         requi\
                                         className="ml-5 border "
-                                        disabled={isFieldDisabled()}
+                                        disabled={isUserEmployee()}
                                       />
                                     </label> */}
 
@@ -541,7 +550,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                     ) : (
                                       <label className="flex justify-between text-lg font-medium leading-6 text-gray-900">
                                         Type of Work:
-                                        {!isFieldDisabled() &&
+                                        {!isUserEmployee() &&
                                           (addingNewTypeOfWork ? (
                                             // Step 5: Show input field and tick button when adding a new type of work
                                             <div>
@@ -598,7 +607,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                           onChange={handleInputChange}
                                           required
                                           className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                          disabled={isFieldDisabled()}
+                                          disabled={isUserEmployee()}
                                         >
                                           {formData.typeOfWork === "" && (
                                             <option value="">
@@ -629,7 +638,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       onChange={handleInputChange}
                                       className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
                                     >
-                                      {!isFieldDisabled() &&
+                                      {
                                         Object.entries(statusOptions).map(
                                           ([value, label]) => (
                                             <option key={value} value={value}>
@@ -649,7 +658,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       value={formData.employeeAssigned}
                                       onChange={handleInputChange}
                                       className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                      disabled={isFieldDisabled()}
+                                      disabled={isUserEmployee()}
                                     >
                                       <option value="">Select Employee</option>
                                       {list.map((employee, index) => (
@@ -700,7 +709,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       onChange={handleInputChange}
                                       required
                                       min="1"
-                                      disabled={isFieldDisabled()}
+                                      disabled={isUserEmployee()}
                                       className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
                                     />
                                   </div>
@@ -717,7 +726,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       required
                                       min="1"
                                       className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                      disabled={isFieldDisabled()}
+                                      disabled={isUserEmployee()}
                                     />
                                   </div>
                                   <div>
@@ -730,7 +739,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       value={formData.deadline}
                                       onChange={handleInputChange}
                                       className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
-                                      disabled={isFieldDisabled()}
+                                      disabled={isUserEmployee()}
                                     />
                                   </div>
                                   <div>
@@ -742,7 +751,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       name="instructions"
                                       value={formData.instructions}
                                       onChange={handleTextareaChange}
-                                      disabled={isFieldDisabled()}
+                                      disabled={isUserEmployee()}
                                       className="mt-2 block w-full min-h-[100px] rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                     />
                                   </div>
@@ -761,7 +770,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                     </div>
                                   ) : (
                                     <>
-                                      {!isFieldDisabled() && (
+                                      {!isUserEmployee() && (
                                         <input
                                           type="file"
                                           name="sourceFiles"
@@ -770,7 +779,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                           multiple
                                           className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
                                           accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
-                                          disabled={isFieldDisabled()}
+                                          disabled={isUserEmployee()}
                                         />
                                       )}
                                       {formData.sourceFiles.length > 0 ? (
@@ -797,7 +806,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                                             ) + "..."
                                                           : file.name} */}
                                                   </a>
-                                                  {!isFieldDisabled() && (
+                                                  {!isUserEmployee() && (
                                                     <>
                                                       <TrashIcon
                                                         title="Delete task"
@@ -879,7 +888,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       multiple
                                       className="ml-5 border my-1 hidden opacity-0 h-8 w-8"
                                       accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
-                                      disabled={isFieldDisabled()}
+                                      disabled={!isUserEmployee()}
                                     />
                                     {formData.submitFiles.length > 0 ? (
                                       <div className="flex gap-x-[20px]">
@@ -905,45 +914,49 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                                           ) + "..."
                                                         : file.name} */}
                                                 </a>
-                                                {!isFieldDisabled() && (
-                                                  <>
-                                                    <TrashIcon
-                                                      title="Delete task"
-                                                      style={{
-                                                        height: "25px",
-                                                        width: "25px",
-                                                        cursor: "pointer",
-                                                        color: "red",
-                                                      }}
-                                                      className="color-red-500 rounded-full p-1 hover:scale-125"
-                                                      onClick={() =>
-                                                        handleFileDelete(
-                                                          file.id,
-                                                          "submit"
-                                                        )
-                                                      }
-                                                    />
-                                                    {index === 0 && (
-                                                      <PlusIcon
-                                                        title="Add job"
-                                                        className="hover:scale-125"
+
+                                                {isUserEmployee() &&
+                                                  !isDate24HoursAgo(
+                                                    formData.endDate
+                                                  ) && (
+                                                    <>
+                                                      <TrashIcon
+                                                        title="Delete task"
                                                         style={{
-                                                          height: "18px",
-                                                          width: "18px",
+                                                          height: "25px",
+                                                          width: "25px",
                                                           cursor: "pointer",
-                                                          color: "blue",
+                                                          color: "red",
                                                         }}
-                                                        onClick={() => {
-                                                          if (
-                                                            submitFileInputRef.current
-                                                          ) {
-                                                            submitFileInputRef.current.click();
-                                                          }
-                                                        }}
+                                                        className="color-red-500 rounded-full p-1 hover:scale-125"
+                                                        onClick={() =>
+                                                          handleFileDelete(
+                                                            file.id,
+                                                            "submit"
+                                                          )
+                                                        }
                                                       />
-                                                    )}
-                                                  </>
-                                                )}
+                                                      {index === 0 && (
+                                                        <PlusIcon
+                                                          title="Add job"
+                                                          className="hover:scale-125"
+                                                          style={{
+                                                            height: "18px",
+                                                            width: "18px",
+                                                            cursor: "pointer",
+                                                            color: "blue",
+                                                          }}
+                                                          onClick={() => {
+                                                            if (
+                                                              submitFileInputRef.current
+                                                            ) {
+                                                              submitFileInputRef.current.click();
+                                                            }
+                                                          }}
+                                                        />
+                                                      )}
+                                                    </>
+                                                  )}
                                               </li>
                                             )
                                           )}

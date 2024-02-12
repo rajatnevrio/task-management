@@ -12,8 +12,12 @@ interface SidebarState {
   isOpen: boolean;
   id: string;
 }
+interface DashboardProps {
+  type?: string;
+}
+const Dashboard = ({ type }: DashboardProps) => {
+  const isCompletedTable = () => type === "completed_jobs";
 
-const Dashboard = () => {
   const { currentUser, logout } = useAuth();
   const [taskArray, setTaskArray] = useState<{ id: string }[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -98,28 +102,30 @@ const Dashboard = () => {
         <div className="m-8  w-full flex flex-col">
           <div className="flex w-full justify-between ">
             <span className=" flex items-center justify-center text-4xl font-semibold">
-              Job Assignment
+              {isCompletedTable() ? "Completed Jobs" : "Job Assignment"}
             </span>
             {(currentUser.role === "admin" ||
-              currentUser.role === "task-creator") && (
-              <button
-                title="Create Job"
-                onClick={() => {
-                  setSidebarOpen((prevSidebarState) => ({
-                    ...prevSidebarState,
-                    isOpen: !prevSidebarState.isOpen,
-                    id: "",
-                  }));
-                }}
-                className=" hover:scale-x-105 h-12 my-4 shadow-md mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
-              >
-                Create Job
-              </button>
-            )}
+              currentUser.role === "task-creator") &&
+              !isCompletedTable() && (
+                <button
+                  title="Create Job"
+                  onClick={() => {
+                    setSidebarOpen((prevSidebarState) => ({
+                      ...prevSidebarState,
+                      isOpen: !prevSidebarState.isOpen,
+                      id: "",
+                    }));
+                  }}
+                  className=" hover:scale-x-105 h-12 my-4 shadow-md mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
+                >
+                  Create Job
+                </button>
+              )}
           </div>
           <div className=" overflow-x-auto pr-[25px]">
             <TaskTable
               taskArray={taskArray}
+              type={type}
               setSidebarOpen={setSidebarOpen}
               updateTaskData={updateTaskData}
             />

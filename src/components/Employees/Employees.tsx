@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import TaskTable from "../TaskTable";
 import AddTaskDrawer from "../AddTaskDrawer";
 import LoaderComp from "../Loader";
 import { collection, getDocs, query, where } from "firebase/firestore";
