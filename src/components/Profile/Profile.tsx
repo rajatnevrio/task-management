@@ -66,7 +66,7 @@ function Profile() {
       >
         {loading ? "Loading..." : "Change Password"}
       </button>)}
-      <Employees type ={'admin'} />
+       { currentUser.role ==='admin' &&<Employees type ={'admin'} />}
     </div>
   );
 }
