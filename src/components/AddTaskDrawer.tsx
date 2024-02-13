@@ -12,6 +12,7 @@ import {
   addDoc,
   arrayUnion,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -26,6 +27,8 @@ import {
   TrashIcon,
   PlusIcon,
   CheckBadgeIcon,
+  PencilSquareIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { DocumentData } from "@firebase/firestore-types";
 
@@ -99,8 +102,10 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   const [jobId, setJobId] = useState<string>("");
   const sourceFileInputRef = useRef<HTMLInputElement>(null);
   const submitFileInputRef = useRef<HTMLInputElement>(null);
-  const [addingNewTypeOfWork, setAddingNewTypeOfWork] = useState(false);
+
   const [newTypeOfWork, setNewTypeOfWork] = useState("");
+  const [selectedTypeOfWork, setSelectedTypeOfWork] = useState<string>("");
+
   const formattedDate = (date: any) => {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -112,11 +117,16 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     const isoString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
     return isoString;
   };
+  const [modeOfWork, setModeOfWork] = useState<string | null>(null);
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
 
+    if (name === "deleteTypeOfWork") {
+      setSelectedTypeOfWork(value);
+    }
     if (name === "newTypeOfWork") {
       setNewTypeOfWork(value);
     } else {
@@ -128,10 +138,9 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     }
     if (name === "jobStatus" && value === "inprogress") {
       const currentDate = new Date();
-      // Construct the ISO-like string
       const timer = new Date();
       const ppValue = formData.pp.toString();
-      const minutesToAdd = parseInt(ppValue, 10) * 1;
+      const minutesToAdd = parseInt(ppValue, 10) * 6;
       timer.setMinutes(timer.getMinutes() + minutesToAdd);
 
       setFormData((prevData) => ({
@@ -139,6 +148,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         startDate: formattedDate(currentDate),
         endDate: "",
         timer: formattedDate(timer),
+        deadline: formattedDate(timer),
       }));
     }
     if (
@@ -155,6 +165,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         ...prevData,
         endDate: formattedDate(currentDate),
         timer: "",
+        deadline: "",
       }));
     }
     if (
@@ -166,9 +177,10 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         startDate: "",
         endDate: "",
         timer: "",
+        deadline: "",
       }));
     }
-    if (name === "employeeAssigned" && value!=="") {
+    if (name === "employeeAssigned" && value !== "") {
       // If yes, automatically set the "jobStatus" to "notstarted"
       setFormData((prevData) => ({
         ...prevData,
@@ -365,6 +377,31 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     getData();
     fetchTypesOfJobs();
   }, []);
+  const handleDeleteJobType = async () => {
+    try {
+      setLoading({ ...loading, loading: true, type: "jobType" });
+
+      const typesOfJobsCollection = collection(db, "typesOfJobs");
+      const querySnapshot = await getDocs(typesOfJobsCollection);
+      querySnapshot.forEach(async (doc) => {
+        if (doc.data().jobType === selectedTypeOfWork) {
+          await deleteDoc(doc.ref);
+        }
+      });
+
+      setTypesOfJobs((prevTypes) =>
+        prevTypes.filter((jobType) => jobType !== selectedTypeOfWork)
+      );
+      setModeOfWork(null);
+      setLoading({ ...loading, loading: false, type: "" });
+    } catch (error) {
+      console.error("Error deleting job type:", error);
+      setModeOfWork(null);
+      setLoading({ ...loading, loading: false, type: "" });
+      // Handle error accordingly
+    }
+  };
+
   const handleTickButtonClick = async () => {
     // Step 2: Handle tick button click to add the new type of work to typesOfJobs
     if (newTypeOfWork.trim() !== "") {
@@ -381,7 +418,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
 
       setTypesOfJobs((prevTypes) => [...prevTypes, newTypeOfWork.trim()]);
       setNewTypeOfWork(""); // Clear the input field after adding
-      setAddingNewTypeOfWork(false); // Stop adding a new type of work
+      setModeOfWork(null); // Stop adding a new type of work
       setLoading({ ...loading, loading: false, type: "" });
     }
   };
@@ -459,12 +496,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
           <Dialog
             as="div"
             className="relative z-10"
-            onClose={() =>
-              setSidebarOpen((prevSidebarState) => ({
-                ...prevSidebarState,
-                isOpen: false,
-              }))
-            }
+            onClose={() => console.log("first")}
           >
             <Transition.Child
               as={Fragment}
@@ -550,45 +582,94 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                     ) : (
                                       <label className="flex justify-between text-lg font-medium leading-6 text-gray-900">
                                         Type of Work:
-                                        {!isUserEmployee() &&
-                                          (addingNewTypeOfWork ? (
-                                            // Step 5: Show input field and tick button when adding a new type of work
-                                            <div>
-                                              <button
-                                                type="button"
-                                                className="ml-2 hover:bg-green-500 hover:text-white text-black px-2 py-1 rounded"
-                                                onClick={handleTickButtonClick}
-                                              >
-                                                ✓
-                                              </button>
-                                              <button
-                                                type="button"
-                                                className="ml-2 hover:bg-red-500 hover:text-white text-black px-2 py-1 rounded"
-                                                onClick={() =>
-                                                  setAddingNewTypeOfWork(false)
-                                                }
-                                              >
-                                                x
-                                              </button>
-                                            </div>
-                                          ) : (
-                                            <PlusIcon
-                                              title="Add type pf job"
-                                              style={{
-                                                height: "30px",
-                                                width: "30px",
-                                                cursor: "pointer",
-                                                color: "blue",
-                                              }}
-                                              className="hover:scale-125 rounded-full p-1 ml-2"
-                                              onClick={() => {
-                                                setAddingNewTypeOfWork(true);
-                                              }}
-                                            />
-                                          ))}
+                                        <div className="flex">
+                                          {!isUserEmployee() &&
+                                            modeOfWork === "add" && (
+                                              <>
+                                                <button
+                                                  type="button"
+                                                  className="ml-2 hover:bg-green-500 hover:text-white text-black px-2 py-1 rounded"
+                                                  onClick={
+                                                    handleTickButtonClick
+                                                  }
+                                                >
+                                                  ✓
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  className="ml-2 hover:bg-red-500 hover:text-white text-black px-2 py-1 rounded"
+                                                  onClick={() =>
+                                                    setModeOfWork(null)
+                                                  }
+                                                >
+                                                  x
+                                                </button>
+                                              </>
+                                            )}
+                                          {!isUserEmployee() &&
+                                            modeOfWork === "edit" && (
+                                              <>
+                                                <TrashIcon
+                                                  title="Delete File"
+                                                  style={{
+                                                    height: "25px",
+                                                    width: "25px",
+                                                    cursor: "pointer",
+                                                    color: "red",
+                                                  }}
+                                                  className="color-red-500 rounded-full p-1 hover:scale-125"
+                                                  onClick={handleDeleteJobType}
+                                                />
+                                                <XMarkIcon
+                                                  title="Cancel"
+                                                  style={{
+                                                    height: "25px",
+                                                    width: "25px",
+                                                    cursor: "pointer",
+                                                    color: "black",
+                                                  }}
+                                                  className="color-gray-500 rounded-full p-1 hover:scale-125"
+                                                  onClick={() =>
+                                                    setModeOfWork(null)
+                                                  }
+                                                />
+                                              </>
+                                            )}
+                                          {!isUserEmployee() &&
+                                            modeOfWork === null && (
+                                              <>
+                                                <PlusIcon
+                                                  title="Add type of job"
+                                                  style={{
+                                                    height: "30px",
+                                                    width: "30px",
+                                                    cursor: "pointer",
+                                                    color: "blue",
+                                                  }}
+                                                  className="hover:scale-125 rounded-full p-1 ml-2"
+                                                  onClick={() =>
+                                                    setModeOfWork("add")
+                                                  }
+                                                />
+                                                <PencilSquareIcon
+                                                  title="Edit type of job"
+                                                  style={{
+                                                    height: "30px",
+                                                    width: "30px",
+                                                    cursor: "pointer",
+                                                    color: "blue",
+                                                  }}
+                                                  className="hover:scale-125 rounded-full p-1 ml-2"
+                                                  onClick={() => {
+                                                    setModeOfWork("edit");
+                                                  }}
+                                                />
+                                              </>
+                                            )}
+                                        </div>
                                       </label>
                                     )}
-                                    {addingNewTypeOfWork ? ( // Step 5: Show input field and tick button when adding a new type of work
+                                    {modeOfWork === "add" ? ( // Step 5: Show input field and tick button when adding a new type of work
                                       <>
                                         <input
                                           type="text"
@@ -598,6 +679,31 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                           className="block mt-2 w-full rounded-md border-0 p-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-lg sm:leading-6"
                                           placeholder="Enter new type of work"
                                         />
+                                      </>
+                                    ) : modeOfWork === "edit" ? (
+                                      <>
+                                        <select
+                                          name="deleteTypeOfWork"
+                                          value={selectedTypeOfWork}
+                                          onChange={handleInputChange}
+                                          required
+                                          className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
+                                          disabled={isUserEmployee()}
+                                        >
+                                          {formData.typeOfWork === "" && (
+                                            <option value="">
+                                              Select Type of Work to Delete
+                                            </option>
+                                          )}
+                                          {typesOfJobs.map((jobType, index) => (
+                                            <option
+                                              key={jobType + index}
+                                              value={jobType}
+                                            >
+                                              {jobType}
+                                            </option>
+                                          ))}
+                                        </select>
                                       </>
                                     ) : (
                                       <>
