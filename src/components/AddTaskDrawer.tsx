@@ -168,7 +168,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         timer: "",
       }));
     }
-    if (name === "employeeAssigned") {
+    if (name === "employeeAssigned" && value!=="") {
       // If yes, automatically set the "jobStatus" to "notstarted"
       setFormData((prevData) => ({
         ...prevData,
