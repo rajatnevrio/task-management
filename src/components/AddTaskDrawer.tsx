@@ -118,6 +118,20 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     return isoString;
   };
   const [modeOfWork, setModeOfWork] = useState<string | null>(null);
+  const recalculateTimer = (ppValue: string) => {
+    const currentDate = new Date();
+    const timer = new Date();
+    const minutesToAdd = parseInt(ppValue, 10) * 6;
+    timer.setMinutes(timer.getMinutes() + minutesToAdd);
+
+    setFormData((prevData) => ({
+      ...prevData,
+      startDate: formattedDate(currentDate),
+      endDate: "",
+      timer: formattedDate(timer),
+      deadline: formattedDate(timer),
+    }));
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -136,20 +150,14 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         [name]: value,
       }));
     }
+    if (name === "pp") {
+      const jobStatus = formData.jobStatus;
+      if (jobStatus === "inprogress") {
+        recalculateTimer(value.toString());
+      }
+    }
     if (name === "jobStatus" && value === "inprogress") {
-      const currentDate = new Date();
-      const timer = new Date();
-      const ppValue = formData.pp.toString();
-      const minutesToAdd = parseInt(ppValue, 10) * 6;
-      timer.setMinutes(timer.getMinutes() + minutesToAdd);
-
-      setFormData((prevData) => ({
-        ...prevData,
-        startDate: formattedDate(currentDate),
-        endDate: "",
-        timer: formattedDate(timer),
-        deadline: formattedDate(timer),
-      }));
+      recalculateTimer(formData.pp.toString());
     }
     if (
       name === "jobStatus" &&
@@ -165,7 +173,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         ...prevData,
         endDate: formattedDate(currentDate),
         timer: "",
-        deadline: "",
       }));
     }
     if (

@@ -72,9 +72,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const sortedTaskArray = taskArray
     .filter((task) => {
       if (currentUser.role === "admin" && type === "completed_jobs") {
-        return task.jobStatus === "completed"; // Filter tasks with jobStatus "completed" only for admin users
+        return task.jobStatus === "completed" || task.jobStatus === "handover" ; // Filter tasks with jobStatus "completed" only for admin users
       } else if (currentUser.role === "admin" && type !== "completed_jobs") {
-        return task.jobStatus !== "completed";
+        return task.jobStatus !== "completed" && task.jobStatus !== "handover";
       } else {
         return true; // Allow all tasks for non-admin users
       }
