@@ -321,10 +321,10 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
             ),
           }));
         }
-
-        // TODO: Update the task collection to remove the file link
-        // You need to implement this part based on your data model and Firestore structure
-        // ...
+        setFormData((updatedFormData: any) => {
+          updateDocById(sidebarOpen.id, updatedFormData);
+          return updatedFormData;
+        });
 
         toast.success("File deleted successfully");
       } else {
