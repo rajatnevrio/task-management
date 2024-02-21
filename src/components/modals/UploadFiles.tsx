@@ -1,393 +1,268 @@
 import React, {
-    ChangeEvent,
-    Dispatch,
-    Fragment,
-    SetStateAction,
-    useEffect,
-    useRef,
-    useState,
-  } from "react";
-  import {
-    DocumentReference,
-    addDoc,
-    arrayUnion,
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    query,
-    serverTimestamp,
-    setDoc,
-    updateDoc,
-    where,
-  } from "firebase/firestore";
-  import { Dialog, Transition } from "@headlessui/react";
-  import { CheckIcon } from "@heroicons/react/24/outline";
-  import { DocumentData } from "@firebase/firestore-types";
-  
-  import { db } from "../../firebase/firebase";
-  import {
-    getStorage,
-    ref,
-    uploadBytesResumable,
-    getDownloadURL,
-  } from "firebase/storage";
-  import { toast } from "react-toastify";
-  import { useAuth } from "../../contexts/AuthContext";
-  import LoaderComp from "../Loader";
-  import { AddModalState, UserDetails } from "../../types";
-  import { Link, useNavigate } from "react-router-dom";
-  import axios from "axios";
-  import { getTypeLabel } from "../Employees/Employees";
-  interface AddEmployeeProps {
-    modalState: AddModalState;
-    setModalState: Dispatch<SetStateAction<AddModalState>>;
-    updateTaskData: () => void;
-    type?: string;
-  }
-  
-  interface rolesApi {
-    email: string;
-    name: string;
-    role: string;
-  }
-  const UploadFiles: React.FC<AddEmployeeProps> = ({
-    modalState,
-    setModalState,
-    updateTaskData,
-    type,
-  }) => {
-    const { signUp, currentUser } = useAuth();
-    const emailRef = useRef<HTMLInputElement>(null);
-    const passwordRef = useRef<HTMLInputElement>(null);
-    const nameRef = useRef<HTMLInputElement>(null);
-    const confirmPasswordRef = useRef<HTMLInputElement>(null);
-    const [error, setError] = useState<string>("");
-    const [loading, setLoading] = useState<boolean>(false);
-    const navigate = useNavigate();
-  
-    const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-  
-      if (passwordRef.current && confirmPasswordRef.current) {
-        if (passwordRef.current.value !== confirmPasswordRef.current.value) {
-          return setError("Password do not match");
-        }
-      }
-  
-      try {
-        setError("");
-        setLoading(true);
-        if (modalState.details.displayName.length > 1) {
-          await handleUpdateUser();
-        }
-        if (emailRef.current && passwordRef.current && nameRef.current) {
-          const response = await axios
-            .post(` ${process.env.REACT_APP_API_URL}/createUser`, {
-              email: emailRef.current.value,
-              password: passwordRef.current.value,
-              displayName: nameRef.current.value,
-              role: type && getTypeLabel(type, "default"),
-            })
-            .catch((err) => {
-              toast.error(err.response.data.error);
-              console.log(err.response.data.error);
-            });
-          updateTaskData();
-  
-          if (response) {
-            toast.success("user created successfully");
-          }
-          setModalState((prev) => ({
-            ...prev,
-            isOpen: !modalState.isOpen,
-          }));
-        }
-      } catch (error) {
-        console.log(error);
-        if (error && (error as any).code === "auth/email-already-in-use") {
-          toast.error("Email is already in use. Please use a different email.");
-          setError("Email is already in use. Please use a different email.");
-        } else {
-          toast.error("Failed to create an account");
-          setError("Failed to create an account");
-        }
-      }
-  
+  Dispatch,
+  Fragment,
+  SetStateAction,
+  useRef,
+  useState,
+} from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { collection, addDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, getStorage } from "firebase/storage";
+import { db } from "../../firebase/firebase";
+import LoaderComp from "../Loader";
+import { AddModalState } from "../../types";
+import { TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
+
+interface AddEmployeeProps {
+  modalState: AddModalState;
+  setModalState: Dispatch<SetStateAction<AddModalState>>;
+  updateTaskData: () => void;
+}
+
+interface SelectedFile {
+  file: File;
+  filename: string;
+  totalPages: number;
+  downloadUrl?: string;
+}
+
+const UploadFiles: React.FC<AddEmployeeProps> = ({
+  modalState,
+  setModalState,
+  updateTaskData,
+}) => {
+  const uploadFileInputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedFiles.length === 0) {
+      setError("Please select at least one file.");
+      return;
+    }
+    try {
+      setLoading(true);
+      const promises = selectedFiles.map(async (fileObj) => {
+        const { file, filename } = fileObj;
+        const storage = getStorage();
+        const storageRef = ref(storage, `Intake/${filename}`);
+        await uploadBytes(storageRef, file);
+        const downloadUrl = await getDownloadURL(storageRef);
+        return { ...fileObj, downloadUrl };
+      });
+      const uploadedFiles = await Promise.all(promises);
+      const intakeFilesCollection = collection(db, "IntakeFiles");
+      uploadedFiles.forEach(async (fileObj) => {
+        const { filename, totalPages, downloadUrl } = fileObj;
+        await addDoc(intakeFilesCollection, {
+          file_name: filename,
+          total_pages: totalPages,
+          url: downloadUrl,
+        });
+      });
+      setSelectedFiles([]);
       setLoading(false);
-    };
-    const handleUpdateUser = async () => {
-      try {
-        setLoading(true);
-        const uid = modalState.details?.uid;
-        const displayName = nameRef?.current?.value;
-        const email = emailRef?.current?.value;
-  
-        // Make a PUT request to your API endpoint
-        const response = await axios
-          .put(`${process.env.REACT_APP_API_URL}/updateUser/${uid}`, {
-            displayName,
-            email,
-          })
-          .catch((err) => {
-            toast.error(err.message);
-            console.log(err);
-          });
-  
-        // Update the employaasigned field in the task documents
-        const taskQuerySnapshot = await getDocs(collection(db, "tasks"));
-  
-        await Promise.all(
-          taskQuerySnapshot.docs.map(async (taskDoc) => {
-            const taskData = taskDoc.data();
-  
-            const employeeAssigned = taskData?.employeeAssigned;
-  
-            if (employeeAssigned === modalState.details?.displayName) {
-              await updateDoc(doc(db, "tasks", taskDoc.id), {
-                employeeAssigned: displayName,
-              });
-            }
-          })
-        );
-  
-        setModalState((prev) => ({
-          ...prev,
-          isOpen: false,
-          details: initState,
-        }));
-        updateTaskData();
-        setLoading(false);
-  
-        toast.success("User updated successfully");
-        // Handle success or update UI accordingly
-      } catch (error) {
-        setModalState((prev) => ({
-          ...prev,
-          isOpen: false,
-          details: initState,
-        }));
-        setLoading(false);
-  
-        toast.error("Error updating user");
-        // Handle error or update UI accordingly
-      }
-    };
-  
-    useEffect(() => {
-      if (
-        modalState.details &&
-        modalState.details.displayName &&
-        modalState.details.displayName.length > 1 &&
-        nameRef.current
-      ) {
-        nameRef.current.value = modalState?.details?.displayName;
-        emailRef.current!.value = modalState?.details?.email;
-      }
-    }, [modalState.details]);
-    const initState = {
-      email: "",
-      name: "",
-      role: "",
-      displayName: "",
-      uid: "",
-    };
-    return (
-      <>
-        {
-          <Transition.Root show={modalState.isOpen} as={Fragment}>
-            <Dialog
-              as="div"
-              className="relative z-10"
-              onClose={() =>
-                setModalState((prev) => ({
-                  ...prev,
-                  isOpen: false,
-                  details: initState,
-                }))
-              }
+      setError("");
+    } catch (error) {
+      console.error("Error adding files to Firebase:", error);
+      setError("Failed to upload files. Please try again later.");
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const fileList = Array.from(files);
+      const updatedSelectedFiles = [
+        ...selectedFiles,
+        ...fileList.map((file) => ({
+          file,
+          filename: file.name,
+          totalPages: 0,
+        })),
+      ];
+      setSelectedFiles(updatedSelectedFiles);
+      setError("")
+    }
+  };
+
+  return (
+    <>
+      <Transition.Root show={modalState.isOpen} as={Fragment}>
+        <Dialog
+          as="div"
+          className="fixed inset-0 z-10 overflow-y-auto"
+          onClose={() =>
+            setModalState((prev) => ({
+              ...prev,
+              isOpen: false,
+            }))
+          }
+        >
+          <div className="min-h-screen px-4 text-center">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
             >
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-              </Transition.Child>
-  
-              <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
-                <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                  <Transition.Child
-                    as={Fragment}
-                    enter="ease-out duration-300"
-                    enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    enterTo="opacity-100 translate-y-0 sm:scale-100"
-                    leave="ease-in duration-200"
-                    leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                    leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                  >
-                    <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:p-6">
-                      {loading ? (
-                        <div className="flex w-full justify-center items-center min-h-[50vh]">
-                          {" "}
-                          <LoaderComp />
+              <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
+            </Transition.Child>
+
+            <span
+              className="inline-block h-screen align-middle"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              enterTo="opacity-100 translate-y-0 sm:scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            >
+              <div className="inline-block w-full max-w-4xl overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
+                {loading ? (
+                  <div className="flex w-full flex-col  justify-center items-center min-h-[50vh]">
+                    {" "}
+                    <LoaderComp />
+                    <span className="py-10">
+                      {" "}
+                      Please wait, files are being uploaded...
+                    </span>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit}>
+                    <div className="flex justify-between p-6 border-b border-gray-200">
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Upload Files
+                      </h3>
+                      <button
+                        type="button"
+                        className="text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
+                        onClick={() =>
+                          setModalState((prev) => ({
+                            ...prev,
+                            isOpen: false,
+                          }))
+                        }
+                      >
+                        <span className="sr-only">Close</span>
+                        <svg
+                          className="w-6 h-6"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="flex w-full justify-end ">
+                      <input
+                        type="file"
+                        name="sourceFiles"
+                        ref={uploadFileInputRef}
+                        onChange={handleFileChange}
+                        multiple
+                        className="hidden"
+                        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                      />
+                    </div>
+                    <div className="px-4 py-5 space-y-6 max-h-[60vh] overflow-y-auto">
+                      {error && (
+                        <div className="p-3 text-sm text-red-700 bg-red-100 rounded-md">
+                          {error}
                         </div>
-                      ) : (
-                        <>
-                          <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">
-                            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                              <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-                                {modalState.details.displayName.length > 1
-                                  ? "Update"
-                                  : "Add"}{" "}
-                                {type && getTypeLabel(type, "button")}
-                              </h2>
-                            </div>
-  
-                            <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
-                              <div className="bg-white px-6 py-12 shadow sm:rounded-lg sm:px-12">
-                                <form
-                                  className="space-y-6"
-                                  onSubmit={handleSubmit}
-                                >
-                                  <div>
-                                    <label
-                                      htmlFor="name"
-                                      className="block text-sm font-medium leading-6 text-gray-900"
-                                    >
-                                      Name
-                                    </label>
-                                    <div className="mt-2">
-                                      <input
-                                        id="name"
-                                        name="name"
-                                        type="name"
-                                        autoComplete="name"
-                                        required
-                                        ref={nameRef}
-                                        className="block p-3 w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                      />
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <label
-                                      htmlFor="email"
-                                      className="block text-sm font-medium leading-6 text-gray-900"
-                                    >
-                                      Email address
-                                    </label>
-                                    <div className="mt-2">
-                                      <input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        autoComplete="email"
-                                        required
-                                        ref={emailRef}
-                                        className="block p-3 w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                      />
-                                    </div>
-                                  </div>
-  
-                                  {modalState.details.displayName.length < 1 && (
-                                    <>
-                                      <div>
-                                        <label
-                                          htmlFor="password"
-                                          className="block text-sm font-medium leading-6 text-gray-900"
-                                        >
-                                          Password
-                                        </label>
-                                        <div className="mt-2">
-                                          <input
-                                            id="password"
-                                            name="password"
-                                            type="password"
-                                            autoComplete="new-password"
-                                            required={
-                                              modalState.details.displayName
-                                                .length < 1
-                                            }
-                                            ref={passwordRef}
-                                            className="block w-full p-3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                          />
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <label
-                                          htmlFor="confirmPassword"
-                                          className="block text-sm font-medium leading-6 text-gray-900"
-                                        >
-                                          Confirm Password
-                                        </label>
-                                        <div className="mt-2">
-                                          <input
-                                            id="confirmPassword"
-                                            name="confirmPassword"
-                                            type="password"
-                                            autoComplete="new-password"
-                                            required={
-                                              modalState.details.displayName
-                                                .length < 1
-                                            }
-                                            ref={confirmPasswordRef}
-                                            className="block w-full p-3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                          />
-                                        </div>
-                                      </div>
-                                    </>
-                                  )}
-  
-                                  {error && (
-                                    <div className="text-red-500 text-sm mt-2">
-                                      {error}
-                                    </div>
-                                  )}
-  
-                                  <div>
-                                    <button
-                                      type="submit"
-                                      disabled={loading}
-                                      className={`flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm ${
-                                        loading
-                                          ? "opacity-50 cursor-not-allowed"
-                                          : "hover:bg-indigo-500"
-                                      } focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600`}
-                                    >
-                                      {loading
-                                        ? ` ${
-                                            modalState.details.displayName
-                                              .length > 0
-                                              ? "Updating..."
-                                              : "Adding..."
-                                          }`
-                                        : `${
-                                            modalState.details.displayName
-                                              .length > 0
-                                              ? "Update"
-                                              : "Add"
-                                          }`}
-                                    </button>
-                                  </div>
-                                </form>
-                              </div>
+                      )}
+
+                      {selectedFiles.length > 0 ? (
+                        selectedFiles.map((fileObj, index) => (
+                          <div
+                            key={index}
+                            className="px-4 py-2 border-b border-gray-200"
+                          >
+                            <div className="flex items-center gap-x-4">
+                              <span
+                                className="flex-1 break-all"
+                                title={fileObj.filename}
+                              >
+                                {fileObj.filename}
+                              </span>
+                              <input
+                                type="number"
+                                className="w-12 ml-2 shadow-sm focus:ring-indigo-500 text-center focus:border-indigo-500 block sm:text-base border-gray-300 rounded-md"
+                                placeholder="Total Pages"
+                                value={fileObj.totalPages}
+                                onChange={(e) => {
+                                  const updatedFiles = [...selectedFiles];
+                                  updatedFiles[index].totalPages = Number(
+                                    e.target.value
+                                  );
+                                  setSelectedFiles(updatedFiles);
+                                }}
+                              />
+                              {/* Add the remove icon with a click event handler */}
+                              <TrashIcon
+                                className="w-5 h-5 text-red-600 cursor-pointer"
+                                onClick={() => {
+                                  const updatedFiles = [...selectedFiles];
+                                  updatedFiles.splice(index, 1); // Remove the file at the specified index
+                                  setSelectedFiles(updatedFiles);
+                                }}
+                              />
                             </div>
                           </div>
-                        </>
+                        ))
+                      ) : (
+                        <div className="px-4 py-2 border-b border-gray-200 flex w-full justify-center min-h-[140px] items-center">
+                          {" "}
+                          No Files Selected
+                        </div>
                       )}
-                    </Dialog.Panel>
-                  </Transition.Child>
-                </div>
+                    </div>
+                    <div className="px-7 py-5 justify-between flex w-full">
+                      <button
+                        type="button"
+                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        onClick={() => uploadFileInputRef.current?.click()}
+                      >
+                        Choose Files
+                      </button>
+                      <button
+                        type="submit"
+                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        disabled={loading}
+                      >
+                        {loading ? "Uploading..." : "Upload"}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
-            </Dialog>
-          </Transition.Root>
-        }
-      </>
-    );
-  };
-  export default UploadFiles;
-  
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition.Root>
+    </>
+  );
+};
+
+export default UploadFiles;

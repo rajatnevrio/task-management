@@ -971,7 +971,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                   loading.type === "sourceFiles" ? (
                                     <div className="max-h-[68px] py-2  flex justify-center w-full">
                                       <LoaderComp height="35" /> Please wait,
-                                      the file is being uploaded.
+                                      files are being uploaded...
                                     </div>
                                   ) : (
                                     <>
@@ -1117,8 +1117,8 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                 {loading.loading &&
                                 loading.type === "submitFiles" ? (
                                   <div className="max-h-[68px] py-2 flex justify-center w-full">
-                                    <LoaderComp height="55" /> Please wait, the
-                                    file is being uploaded.
+                                    <LoaderComp height="55" />
+                                    Please wait, files are being uploaded...
                                   </div>
                                 ) : (
                                   <>
