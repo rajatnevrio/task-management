@@ -9,6 +9,7 @@ import { AddModalState, UserDetails } from "../../types";
 import EmployeesTable from "../tables/EmployeesTable";
 import AddEmployee from "../modals/AddEmployee";
 import axios from "axios";
+import UploadFiles from "../modals/UploadFiles";
 interface rolesApi {
   email: string;
   name: string;
@@ -50,7 +51,7 @@ export const getTypeLabel = (type: string, context = "default"): string => {
   }
   return label || "Unknown";
 };
-function Employees({ type }: EmployeeProps) {
+function IntakeFiles({ type = "employee" }: EmployeeProps) {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState<boolean>(false);
   const [modalState, setModalState] = useState<AddModalState>({
@@ -116,7 +117,7 @@ function Employees({ type }: EmployeeProps) {
         >
           <div className="flex w-full justify-between ">
             <span className=" flex items-center justify-center text-4xl font-semibold">
-              {type && getTypeLabel(type, "title")}
+             Intake Files
             </span>
             {currentUser.role === "admin" && (
               <button
@@ -129,7 +130,7 @@ function Employees({ type }: EmployeeProps) {
                 }}
                 className="h-12 my-4 mr-16 p-2 rounded-lg text-white w-fit bg-blue-500"
               >
-                Add {type && getTypeLabel(type, "button")}
+                Upload Files
               </button>
             )}
           </div>
@@ -150,11 +151,10 @@ function Employees({ type }: EmployeeProps) {
             )}
           </div>
           {modalState.isOpen && (
-            <AddEmployee
+            <UploadFiles
               modalState={modalState}
               setModalState={setModalState}
               updateTaskData={updateData}
-              type={type}
             />
           )}
         </div>
@@ -164,4 +164,4 @@ function Employees({ type }: EmployeeProps) {
   );
 }
 
-export default Employees;
+export default IntakeFiles;

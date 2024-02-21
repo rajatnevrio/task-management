@@ -7,13 +7,15 @@ import {
   UserGroupIcon,
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  DocumentIcon
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: HomeIcon, count: "5", current: true, role: 'all' },
+  { name: "Intake Files", href: "/intake-files", icon: DocumentIcon, current: false, role: 'admin' },
   { name: "Employees", href: "/employees", icon: UserGroupIcon, current: false, role: 'admin' },
   { name: "Intake Team", href: "/intake-team", icon: UserPlusIcon, current: false, role: 'admin' },
   { name: "Profile", href: "/profile", icon: UserCircleIcon, current: false, role: 'all' },

@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import SideBar from "../SideBar";
-import AddTaskDrawer from "../AddTaskDrawer";
+import AddTaskDrawer from "../modals/AddTaskDrawer";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
-import TaskTable from "../TaskTable";
+import TaskTable from "../tables/TaskTable";
 import LoaderComp from "../Loader";
 import { UserDetails } from "../../types";
 interface SidebarState {

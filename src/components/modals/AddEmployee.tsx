@@ -25,7 +25,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { CheckIcon } from "@heroicons/react/24/outline";
 import { DocumentData } from "@firebase/firestore-types";
 
-import { db } from "../firebase/firebase";
+import { db } from "../../firebase/firebase";
 import {
   getStorage,
   ref,
@@ -33,12 +33,12 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 import { toast } from "react-toastify";
-import { useAuth } from "../contexts/AuthContext";
-import LoaderComp from "./Loader";
-import { AddModalState, UserDetails } from "../types";
+import { useAuth } from "../../contexts/AuthContext";
+import LoaderComp from "../Loader";
+import { AddModalState, UserDetails } from "../../types";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { getTypeLabel } from "./Employees/Employees";
+import { getTypeLabel } from "../Employees/Employees";
 interface AddEmployeeProps {
   modalState: AddModalState;
   setModalState: Dispatch<SetStateAction<AddModalState>>;

@@ -10,6 +10,7 @@ import ForgetPasswordPage from "./pages/ForgetPasswordPage";
 import ProfilePage from "./pages/ProfilePage";
 import Layout from "./components/Layout";
 import Employees from "./components/Employees/Employees";
+import IntakeFilesPage from "./pages/IntakeFilesPage";
 const App: React.FC = () => {
   return (
     <>
@@ -61,6 +62,11 @@ const App: React.FC = () => {
                <Route path="/intake-team"   element={
                 <Layout>
                   <Employees type="task_creator" />
+                </Layout>
+              } />
+                  <Route path="/intake-files"   element={
+                <Layout>
+                  <IntakeFilesPage />
                 </Layout>
               } />
             {/* <Route path="/dashboard" element={<DashboardPage />} /> */}

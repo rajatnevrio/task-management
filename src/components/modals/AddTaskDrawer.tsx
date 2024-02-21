@@ -29,7 +29,7 @@ import {
   ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 
-import { db } from "../firebase/firebase";
+import { db } from "../../firebase/firebase";
 import {
   getStorage,
   ref,
@@ -38,8 +38,8 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { toast } from "react-toastify";
-import LoaderComp from "./Loader";
-import { UserDetails } from "../types";
+import LoaderComp from "../Loader";
+import { UserDetails } from "../../types";
 import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.mjs";
 import axios from "axios";

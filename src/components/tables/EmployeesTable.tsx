@@ -16,11 +16,11 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
-import { db } from "../firebase/firebase";
-import { useAuth } from "../contexts/AuthContext";
-import ConfirmModal from "./ConfirmModal";
+import { db } from "../../firebase/firebase";
+import { useAuth } from "../../contexts/AuthContext";
+import ConfirmModal from "../modals/ConfirmModal";
 import { toast } from "react-toastify";
-import { AddModalState, Employee } from "../types";
+import { AddModalState, Employee } from "../../types";
 
 interface rolesApi {
   email: string;

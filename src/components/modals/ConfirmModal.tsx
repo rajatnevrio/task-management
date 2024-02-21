@@ -1,7 +1,7 @@
 import { Fragment, useRef, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { ExclamationCircleIcon } from "@heroicons/react/24/outline";
-import LoaderComp from "./Loader";
+import LoaderComp from "../Loader";
 
 interface ConfirmModalProps {
   message: string;

@@ -6,12 +6,12 @@ import {
   ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 import { collection, doc, deleteDoc, getDoc } from "firebase/firestore";
-import { db } from "../firebase/firebase";
-import { useAuth } from "../contexts/AuthContext";
-import ConfirmModal from "./ConfirmModal";
+import { db } from "../../firebase/firebase";
+import { useAuth } from "../../contexts/AuthContext";
+import ConfirmModal from "../modals/ConfirmModal";
 import { toast } from "react-toastify";
-import CountdownTimer from "./CountDownTimer/CountDownTimer";
-import { statusOptions } from "./AddTaskDrawer";
+import CountdownTimer from "../CountDownTimer/CountDownTimer";
+import { statusOptions } from "../modals/AddTaskDrawer";
 interface Task {
   [key: string]: string | number; // Adjust the type according to your task structure
 }
@@ -244,7 +244,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
     "Assignee",
     "P.P",
     "Job Status",
-    "Slides",
+    "Pages",
     // "Source Files",
     // "Submitted Files",
     "Start Date",
