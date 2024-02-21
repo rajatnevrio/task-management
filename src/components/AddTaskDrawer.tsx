@@ -10,7 +10,6 @@ import React, {
 import {
   DocumentReference,
   addDoc,
-  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -23,14 +22,12 @@ import {
 } from "firebase/firestore";
 import { Dialog, Transition } from "@headlessui/react";
 import {
-  CheckIcon,
   TrashIcon,
   PlusIcon,
-  CheckBadgeIcon,
   PencilSquareIcon,
   XMarkIcon,
+  ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
-import { DocumentData } from "@firebase/firestore-types";
 
 import { db } from "../firebase/firebase";
 import {
@@ -41,9 +38,10 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { toast } from "react-toastify";
-import { useAuth } from "../contexts/AuthContext";
 import LoaderComp from "./Loader";
 import { UserDetails } from "../types";
+import * as pdfjsLib from "pdfjs-dist";
+import "pdfjs-dist/build/pdf.worker.mjs";
 import axios from "axios";
 interface SidebarState {
   isOpen: boolean;
@@ -72,6 +70,7 @@ export const statusOptions: { [key: string]: string } = {
   completed: "Completed",
   handover: "Handover",
 };
+pdfjsLib.GlobalWorkerOptions.workerSrc = "path/to/pdf.worker.js";
 const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   sidebarOpen,
   setSidebarOpen,
@@ -80,15 +79,26 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     // title: "",
-    numberOfSlides: 1,
+    numberOfSlides: 0,
     typeOfWork: "",
     pp: 1,
     employeeAssigned: "",
     startDate: "",
     endDate: "",
     deadline: "",
-    sourceFiles: [] as { name: string; url: string; id: string }[],
-    submitFiles: [] as { name: string; url: string; id: string }[],
+    sourceFiles: [] as {
+      name: string;
+      url: string;
+      id: string;
+      status: boolean;
+      totalPages: number | 0;
+    }[],
+    submitFiles: [] as {
+      name: string;
+      url: string;
+      id: string;
+      status: boolean;
+    }[],
     instructions: "",
     jobStatus: "unassigned",
     timer: "",
@@ -250,6 +260,8 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       const docRef = doc(collection(db, "tasks"), docId);
       await updateDoc(docRef, updatedData);
     } catch (error) {
+      console.log("first", updatedData);
+
       console.error(`Error updating document with ID ${docId}:`, error);
       throw error;
     }
@@ -266,24 +278,55 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         const filename = `${uniqueId}`;
         const storageRef = ref(storage, `files/${filename}`);
         const uploadTask = uploadBytesResumable(storageRef, file);
+        let pages: number | undefined;
 
         // Wait for the upload to complete
         await uploadTask;
 
         // Get the download URL for the uploaded file
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        let fileReader = new FileReader();
+        const pagesPromise = new Promise<number>((resolve, reject) => {
+          fileReader.onload = function () {
+            if (fileReader.result && isPDF(fileReader.result as ArrayBuffer)) {
+              let typedArray = new Uint8Array(fileReader.result as ArrayBuffer);
+              const task = pdfjsLib.getDocument(typedArray);
+              task.promise
+                .then((pdf) => {
+                  pages = pdf.numPages;
+                  console.log("Number of pages:", pages);
+                  resolve(pages); // Resolve the promise with the number of pages
+                })
+                .catch(reject);
+            } else {
+              reject(new Error("Failed to read file content"));
+            }
+          };
+        });
 
-        // Return an object with name, url, and id properties
-        return { id: uniqueId, name: originalFileName, url: downloadURL };
+        fileReader.readAsArrayBuffer(file);
+        await pagesPromise.catch((error) => {
+          console.error(error);
+        });
+        setFormData((prevData) => ({
+          ...prevData,
+          numberOfSlides:
+            pages !== undefined
+              ? Number(prevData.numberOfSlides) + Number(pages)
+              : Number(prevData.numberOfSlides),
+        }));
+        return {
+          id: uniqueId,
+          name: originalFileName,
+          url: downloadURL,
+          totalPages: pages ? pages : 0,
+        };
       });
 
-      // Wait for all file uploads to complete
       const newFiles = await Promise.all(fileUploadPromises);
 
-      // Display a success message
       setLoading({ ...loading, loading: false, type: "" });
 
-      // Append new files to the existing files
       setFormData((prevData: any) => ({
         ...prevData,
         [e.target.name]: [...prevData[e.target.name], ...newFiles],
@@ -293,6 +336,14 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     }
   };
 
+  const isPDF = (data: ArrayBuffer): boolean => {
+    const arr = new Uint8Array(data).subarray(0, 4);
+    const header = Array.from(arr)
+      .map((byte) => byte.toString(16))
+      .join("")
+      .toUpperCase();
+    return header === "25504446"; // PDF magic number
+  };
   const handleFileDelete = async (fileId: string, type: string) => {
     try {
       // Find the file with the specified fileId
@@ -300,15 +351,16 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         type === "source"
           ? formData.sourceFiles.find((file: any) => file.id === fileId)
           : formData.submitFiles.find((file: any) => file.id === fileId);
-
       if (fileToDelete) {
         // Delete the file from Firebase Storage
         const storageRef = ref(storage, `files/${fileToDelete.id}`);
         await deleteObject(storageRef);
 
-        if (type === "source") {
+        if (type === "source" && fileToDelete && "totalPages" in fileToDelete) {
           setFormData((prevData: any) => ({
             ...prevData,
+            numberOfSlides:
+              Number(prevData.numberOfSlides) - Number(fileToDelete.totalPages),
             sourceFiles: prevData.sourceFiles.filter(
               (file: any) => file.id !== fileId
             ),
@@ -335,7 +387,32 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       toast.error("Error deleting file");
     }
   };
+  const handleDownloadFile = (
+    fileUrl: string,
+    fileId: string,
+    fileType: string
+  ) => {
+    setFormData((prevData: any) => {
+      const updatedFiles = prevData[fileType].map((file: any) => {
+        return file.id === fileId ? { ...file, status: true } : file;
+      });
+      return {
+        ...prevData,
+        [fileType]: updatedFiles,
+      };
+    });
+    setFormData((updatedFormData: any) => {
+      updateDocById(sidebarOpen.id, updatedFormData);
+      return updatedFormData;
+    });
 
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = "";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   const storage = getStorage();
   const getData = async () => {
     try {
@@ -827,7 +904,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                   </div>
                                   <div>
                                     <label className="flex text-lg font-medium leading-6 text-gray-900">
-                                      Number of Slides:
+                                      Number of Pages:
                                     </label>
 
                                     <input
@@ -836,7 +913,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       value={formData.numberOfSlides}
                                       onChange={handleInputChange}
                                       required
-                                      min="1"
+                                      // min="1"
                                       className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-lg sm:leading-6"
                                       disabled={isUserEmployee()}
                                     />
@@ -869,10 +946,25 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                   </div>
                                 </div>
                               </div>
+
                               {
                                 <div className="flex flex-col gap-x-8">
                                   <label className="w-fit min-w-[109px] text-lg mb-4 font-medium leading-6 text-gray-900 flex items-center text-left">
                                     Source Files:
+                                    {/* {formData.sourceFiles.length > 0 &&
+                                      formData.sourceFiles[0].totalPages && (
+                                        <span className="ml-2 text-sm text-gray-600">
+                                          (
+                                          {formData.sourceFiles.reduce(
+                                            (totalPages, file) =>
+                                              file.totalPages
+                                                ? totalPages + file.totalPages
+                                                : totalPages,
+                                            0
+                                          )}{" "}
+                                          pages)
+                                        </span>
+                                      )} */}
                                   </label>
 
                                   {loading.loading &&
@@ -897,39 +989,55 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                       )}
                                       {formData.sourceFiles.length > 0 ? (
                                         <div className="flex gap-x-[20px]">
-                                          <ul className="list-disc">
+                                          <ul className="list-disc w-full">
                                             {formData.sourceFiles.map(
                                               (file, index) => (
                                                 <li
                                                   key={index}
-                                                  className="flex items-start"
+                                                  className="flex items-start "
                                                 >
-                                                  <a
-                                                    href={file.url} // Assuming 'url' is the property containing the file URL
-                                                    target="_blank"
-                                                    title={`${file.name}`}
-                                                    rel="noopener noreferrer"
-                                                    className="file-link hover:underline text-start max-w-[95%] hover:text-blue-500"
-                                                  >
-                                                    {file.name}
-                                                    {/* {file.name.length > 22
-                                                          ? file.name.substring(
-                                                              0,
-                                                              22
-                                                            ) + "..."
-                                                          : file.name} */}
-                                                  </a>
-                                                  {!isUserEmployee() && (
+                                                  {!isUserEmployee() ? (
+                                                    <a
+                                                      href={file.url}
+                                                      target="_blank"
+                                                      title={`${file.name}`}
+                                                      rel="noopener noreferrer"
+                                                      className="file-link hover:underline text-start  pr-2 overflow-hidden  max-w-[95%] hover:text-blue-500"
+                                                    >
+                                                      {file.name}
+                                                    </a>
+                                                  ) : (
+                                                    <span
+                                                      title={`${file.name}`}
+                                                      className={`file-link  text-start max-w-[95%]   overflow-hidden  ${
+                                                        file.status
+                                                          ? "text-purple-800"
+                                                          : ""
+                                                      }`}
+                                                    >
+                                                      {file.name}{" "}
+                                                      {formData.sourceFiles
+                                                        .length > 0 &&
+                                                        formData.sourceFiles[0]
+                                                          .totalPages && (
+                                                          <span className="ml-2 text-sm text-gray-600">
+                                                            ({file.totalPages}
+                                                            pages)
+                                                          </span>
+                                                        )}
+                                                    </span>
+                                                  )}
+                                                  {!isUserEmployee() ? (
                                                     <>
                                                       <TrashIcon
                                                         title="Delete File"
                                                         style={{
-                                                          height: "25px",
-                                                          width: "25px",
+                                                          height: "22px",
+                                                          width: "22px",
                                                           cursor: "pointer",
                                                           color: "red",
                                                         }}
-                                                        className="color-red-500 rounded-full p-1 hover:scale-125"
+                                                        className="color-red-500 rounded-full  hover:scale-125"
                                                         onClick={() =>
                                                           handleFileDelete(
                                                             file.id,
@@ -956,6 +1064,26 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                                           }}
                                                         />
                                                       )}
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <ArrowDownTrayIcon
+                                                        title="Add file"
+                                                        className="hover:scale-125 pl-2"
+                                                        style={{
+                                                          height: "32px",
+                                                          width: "32px",
+                                                          cursor: "pointer",
+                                                          color: "blue",
+                                                        }}
+                                                        onClick={() =>
+                                                          handleDownloadFile(
+                                                            file.url,
+                                                            file?.id,
+                                                            "sourceFiles"
+                                                          )
+                                                        }
+                                                      />
                                                     </>
                                                   )}
                                                 </li>
