@@ -63,6 +63,39 @@ type LoadingState = {
   loading: boolean;
   type: string; // You can replace 'string' with the actual type you want
 };
+export const isPDF = (data: ArrayBuffer): boolean => {
+  const arr = new Uint8Array(data).subarray(0, 4);
+  const header = Array.from(arr)
+    .map((byte) => byte.toString(16))
+    .join("")
+    .toUpperCase();
+  return header === "25504446"; // PDF magic number
+};
+
+export const countPDFPages = (file: File): Promise<number> => {
+  return new Promise((resolve, reject) => {
+    const fileReader = new FileReader();
+    fileReader.onload = function () {
+      if (fileReader.result && isPDF(fileReader.result as ArrayBuffer)) {
+        const typedArray = new Uint8Array(fileReader.result as ArrayBuffer);
+        const task = pdfjsLib.getDocument(typedArray);
+        task.promise
+          .then((pdf) => {
+            const pages = pdf.numPages;
+            resolve(pages);
+          })
+          .catch((error) => {
+            console.error(error);
+            reject(error);
+          });
+      } else {
+        resolve(0); // Not a PDF file or failed to read content
+      }
+    };
+    fileReader.readAsArrayBuffer(file);
+  });
+};
+
 export const statusOptions: { [key: string]: string } = {
   unassigned: "Unassigned",
   notstarted: "Not Started",
@@ -260,7 +293,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       const docRef = doc(collection(db, "tasks"), docId);
       await updateDoc(docRef, updatedData);
     } catch (error) {
-      console.log("first", updatedData);
 
       console.error(`Error updating document with ID ${docId}:`, error);
       throw error;
@@ -285,29 +317,14 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
 
         // Get the download URL for the uploaded file
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        let fileReader = new FileReader();
-        const pagesPromise = new Promise<number>((resolve, reject) => {
-          fileReader.onload = function () {
-            if (fileReader.result && isPDF(fileReader.result as ArrayBuffer)) {
-              let typedArray = new Uint8Array(fileReader.result as ArrayBuffer);
-              const task = pdfjsLib.getDocument(typedArray);
-              task.promise
-                .then((pdf) => {
-                  pages = pdf.numPages;
-                  console.log("Number of pages:", pages);
-                  resolve(pages); // Resolve the promise with the number of pages
-                })
-                .catch(reject);
-            } else {
-              reject(new Error("Failed to read file content"));
-            }
-          };
-        });
 
-        fileReader.readAsArrayBuffer(file);
-        await pagesPromise.catch((error) => {
+        try {
+          pages = await countPDFPages(file);
+        } catch (error) {
           console.error(error);
-        });
+          pages = 0;
+        }
+
         setFormData((prevData) => ({
           ...prevData,
           numberOfSlides:
@@ -335,15 +352,45 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       toast.success("Files uploaded successfully");
     }
   };
-
-  const isPDF = (data: ArrayBuffer): boolean => {
-    const arr = new Uint8Array(data).subarray(0, 4);
-    const header = Array.from(arr)
-      .map((byte) => byte.toString(16))
-      .join("")
-      .toUpperCase();
-    return header === "25504446"; // PDF magic number
+  const deleteAllFiles = async () => {
+    try {
+      // Check if there are any files in sourceFiles
+      if (formData.sourceFiles.length > 0) {
+        // Delete all files in sourceFiles
+        await Promise.all(
+          formData.sourceFiles.map(async (file: any) => {
+            const storageRef = ref(storage, `files/${file.id}`);
+            await deleteObject(storageRef);
+          })
+        );
+      }
+  
+      // Check if there are any files in submitFiles
+      if (formData.submitFiles.length > 0) {
+        // Delete all files in submitFiles
+        await Promise.all(
+          formData.submitFiles.map(async (file: any) => {
+            const storageRef = ref(storage, `files/${file.id}`);
+            await deleteObject(storageRef);
+          })
+        );
+      }
+  
+      // Clear both sourceFiles and submitFiles arrays
+      setFormData((prevData: any) => ({
+        ...prevData,
+        sourceFiles: [],
+        submitFiles: [],
+      }));
+  
+      // toast.success("All files deleted successfully");
+    } catch (error) {
+      console.error("Error deleting files:", error);
+      // toast.error("Error deleting files");
+    }
   };
+  
+
   const handleFileDelete = async (fileId: string, type: string) => {
     try {
       // Find the file with the specified fileId
@@ -373,10 +420,12 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
             ),
           }));
         }
-        setFormData((updatedFormData: any) => {
-          updateDocById(sidebarOpen.id, updatedFormData);
-          return updatedFormData;
-        });
+        if (sidebarOpen.id !== "") {
+          setFormData((updatedFormData: any) => {
+            updateDocById(sidebarOpen.id, updatedFormData);
+            return updatedFormData;
+          });
+        }
 
         toast.success("File deleted successfully");
       } else {
@@ -1002,7 +1051,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                                       target="_blank"
                                                       title={`${file.name}`}
                                                       rel="noopener noreferrer"
-                                                      className="file-link hover:underline text-start  pr-2 overflow-hidden  max-w-[95%] hover:text-blue-500"
+                                                      className="file-link hover:underline text-start break-all  pr-2 overflow-hidden  max-w-[95%] hover:text-blue-500"
                                                     >
                                                       {file.name}
                                                     </a>
@@ -1247,12 +1296,17 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                   title="Cancel"
                                   className=" w-[50%] justify-center rounded-md bg-red-600 mt-8 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                   onClick={(event) => {
+                                    // deleteAllFiles()
                                     // Handle the event if needed
+                                    setFormData((prevFormData) => ({
+                                      ...prevFormData, // Copy the current formData state
+                                    }));
                                     setSidebarOpen((prevSidebarState) => ({
                                       ...prevSidebarState,
                                       isOpen: !prevSidebarState.isOpen,
                                       id: "",
                                     }));
+                                    updateTaskData();
                                   }}
                                 >
                                   Cancel

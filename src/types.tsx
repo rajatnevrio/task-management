@@ -22,3 +22,9 @@ export interface UserDetails {
     displayName: string;
     role: string;
   }
+  export interface IntakeFiles {
+    file_name: string;
+    total_pages: string;
+    url: string;
+    file_id: string
+  }

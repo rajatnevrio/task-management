@@ -11,7 +11,9 @@ import { ref, uploadBytes, getDownloadURL, getStorage } from "firebase/storage";
 import { db } from "../../firebase/firebase";
 import LoaderComp from "../Loader";
 import { AddModalState } from "../../types";
-import { TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { TrashIcon } from "@heroicons/react/24/outline";
+import { toast } from "react-toastify";
+import { countPDFPages, isPDF } from "./AddTaskDrawer";
 
 interface AddEmployeeProps {
   modalState: AddModalState;
@@ -47,46 +49,139 @@ const UploadFiles: React.FC<AddEmployeeProps> = ({
       const promises = selectedFiles.map(async (fileObj) => {
         const { file, filename } = fileObj;
         const storage = getStorage();
-        const storageRef = ref(storage, `Intake/${filename}`);
+        const originalFileName = filename;
+        const timestamp = Date.now();
+        const uniqueId = `${originalFileName}_${timestamp}`;
+        const fileId = `${uniqueId}`;
+        const storageRef = ref(storage, `Intake/${fileId}`);
         await uploadBytes(storageRef, file);
         const downloadUrl = await getDownloadURL(storageRef);
-        return { ...fileObj, downloadUrl };
+        return { ...fileObj, downloadUrl, uniqueId };
       });
       const uploadedFiles = await Promise.all(promises);
       const intakeFilesCollection = collection(db, "IntakeFiles");
       uploadedFiles.forEach(async (fileObj) => {
-        const { filename, totalPages, downloadUrl } = fileObj;
+        const { filename, totalPages, downloadUrl, uniqueId } = fileObj;
         await addDoc(intakeFilesCollection, {
           file_name: filename,
           total_pages: totalPages,
+          file_id: uniqueId,
           url: downloadUrl,
         });
       });
       setSelectedFiles([]);
       setLoading(false);
+      setModalState((prev) => ({
+        ...prev,
+        isOpen: false,
+      }));
+      toast.success("Files uploaded successfully");
+      updateTaskData()
       setError("");
     } catch (error) {
       console.error("Error adding files to Firebase:", error);
+      toast.error("Error adding files to Firebase");
       setError("Failed to upload files. Please try again later.");
       setLoading(false);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
       const fileList = Array.from(files);
-      const updatedSelectedFiles = [
-        ...selectedFiles,
-        ...fileList.map((file) => ({
-          file,
-          filename: file.name,
-          totalPages: 0,
-        })),
-      ];
-      setSelectedFiles(updatedSelectedFiles);
-      setError("")
+
+      const updatedSelectedFiles = await Promise.all(
+        fileList.map(async (file) => {
+          let totalPages = 0;
+          const fileContent = await readFileAsArrayBuffer(file);
+          if (isPDF(fileContent)) {
+            try {
+              totalPages = await countPDFPages(file);
+              console.log("Total pages:", totalPages);
+            } catch (error) {
+              console.error("Error counting PDF pages:", error);
+            }
+          }
+          return {
+            file,
+            filename: file.name,
+            totalPages,
+          };
+        })
+      );
+
+      setSelectedFiles((prevSelectedFiles) => [
+        ...updatedSelectedFiles,
+        ...prevSelectedFiles,
+      ]);
+      setError("");
     }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  let isDropHandled = false; // Flag to track if drop event has been handled
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+
+    // Check if drop event has already been handled
+    if (isDropHandled) {
+      return;
+    }
+
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles) {
+      isDropHandled = true; // Set flag to true to indicate drop event is handled
+
+      const fileList = Array.from(droppedFiles);
+
+      const updatedSelectedFiles = await Promise.all(
+        fileList.map(async (file) => {
+          let totalPages = 0;
+          const fileContent = await readFileAsArrayBuffer(file);
+          if (isPDF(fileContent)) {
+            try {
+              totalPages = await countPDFPages(file);
+              console.log("first", totalPages);
+            } catch (error) {
+              console.error("Error counting PDF pages:", error);
+            }
+          }
+          return {
+            file,
+            filename: file.name,
+            totalPages,
+          };
+        })
+      );
+
+      setSelectedFiles((prevSelectedFiles) => [
+        ...updatedSelectedFiles,
+        ...prevSelectedFiles,
+      ]);
+      setError("");
+    }
+  };
+
+  const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result instanceof ArrayBuffer) {
+          resolve(reader.result);
+        } else {
+          reject(new Error("Failed to read file as ArrayBuffer"));
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error("Failed to read file"));
+      };
+      reader.readAsArrayBuffer(file);
+    });
   };
 
   return (
@@ -95,12 +190,7 @@ const UploadFiles: React.FC<AddEmployeeProps> = ({
         <Dialog
           as="div"
           className="fixed inset-0 z-10 overflow-y-auto"
-          onClose={() =>
-            setModalState((prev) => ({
-              ...prev,
-              isOpen: false,
-            }))
-          }
+          onClose={() => console.log("first")}
         >
           <div className="min-h-screen px-4 text-center">
             <Transition.Child
@@ -149,7 +239,8 @@ const UploadFiles: React.FC<AddEmployeeProps> = ({
                       </h3>
                       <button
                         type="button"
-                        className="text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
+                        title="Close"
+                        className="text-gray-400 hover:text-gray-500 hover:scale-110 focus:outline-none focus:text-gray-500"
                         onClick={() =>
                           setModalState((prev) => ({
                             ...prev,
@@ -157,7 +248,9 @@ const UploadFiles: React.FC<AddEmployeeProps> = ({
                           }))
                         }
                       >
-                        <span className="sr-only">Close</span>
+                        <span className="sr-only" title="Close">
+                          Close
+                        </span>
                         <svg
                           className="w-6 h-6"
                           xmlns="http://www.w3.org/2000/svg"
@@ -186,7 +279,11 @@ const UploadFiles: React.FC<AddEmployeeProps> = ({
                         accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                       />
                     </div>
-                    <div className="px-4 py-5 space-y-6 max-h-[60vh] overflow-y-auto">
+                    <div
+                      className="px-4 py-5 space-y-6 max-h-[60vh] overflow-y-auto"
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                    >
                       {error && (
                         <div className="p-3 text-sm text-red-700 bg-red-100 rounded-md">
                           {error}
@@ -219,12 +316,11 @@ const UploadFiles: React.FC<AddEmployeeProps> = ({
                                   setSelectedFiles(updatedFiles);
                                 }}
                               />
-                              {/* Add the remove icon with a click event handler */}
                               <TrashIcon
-                                className="w-5 h-5 text-red-600 cursor-pointer"
+                                className="w-5 h-5 text-red-600 cursor-pointer hover:scale-110"
                                 onClick={() => {
                                   const updatedFiles = [...selectedFiles];
-                                  updatedFiles.splice(index, 1); // Remove the file at the specified index
+                                  updatedFiles.splice(index, 1);
                                   setSelectedFiles(updatedFiles);
                                 }}
                               />
@@ -232,9 +328,16 @@ const UploadFiles: React.FC<AddEmployeeProps> = ({
                           </div>
                         ))
                       ) : (
-                        <div className="px-4 py-2 border-b border-gray-200 flex w-full justify-center min-h-[140px] items-center">
+                        <div
+                          className="px-4 py-2 border-b border-gray-200 flex flex-col w-full justify-center min-h-[140px] items-center"
+                          onDragOver={handleDragOver}
+                          onDrop={handleDrop}
+                        >
                           {" "}
                           No Files Selected
+                          <span className="text-gray-500">
+                            (Drag and Drop files here)
+                          </span>
                         </div>
                       )}
                     </div>

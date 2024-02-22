@@ -5,11 +5,12 @@ import LoaderComp from "../Loader";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase/firebase";
-import { AddModalState, UserDetails } from "../../types";
+import { AddModalState, IntakeFiles, UserDetails } from "../../types";
 import EmployeesTable from "../tables/EmployeesTable";
 import AddEmployee from "../modals/AddEmployee";
 import axios from "axios";
 import UploadFiles from "../modals/UploadFiles";
+import IntakeFilesTable from "../tables/IntakeFilesTable";
 interface rolesApi {
   email: string;
   name: string;
@@ -27,6 +28,7 @@ type TypeLabels = {
     button: string;
   };
 };
+
 export const typeLabels: TypeLabels = {
   task_creator: {
     default: "task-creator",
@@ -51,9 +53,11 @@ export const getTypeLabel = (type: string, context = "default"): string => {
   }
   return label || "Unknown";
 };
-function IntakeFiles({ type = "employee" }: EmployeeProps) {
+function IntakeFilesComponent({ type = "employee" }: EmployeeProps) {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState<boolean>(false);
+  const [intakeFiles, setIntakeFiles] = useState<IntakeFiles[]>([]);
+
   const [modalState, setModalState] = useState<AddModalState>({
     isOpen: false,
     details: {
@@ -67,9 +71,35 @@ function IntakeFiles({ type = "employee" }: EmployeeProps) {
 
   const navigate = useNavigate();
   const updateData = () => {
-    getData();
+    fetchIntakeFiles();
   };
-
+  const fetchIntakeFiles = async () => {
+    try {
+      const IntakeFilesCollection = collection(db, "IntakeFiles");
+      const q = query(IntakeFilesCollection);
+  
+      const querySnapshot = await getDocs(q);
+  
+      const files = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          file_name: data.file_name,
+          total_pages: data.total_pages,
+          url: data.url,
+          file_id: data.file_id
+        };
+      });
+      console.log("first", files);
+      setIntakeFiles(files);
+    } catch (error) {
+      console.error("Error fetching types of jobs:", error);
+      // Handle error accordingly
+    }
+  };
+  
+  useEffect(() => {
+    fetchIntakeFiles();
+  }, []);
   const getData = async () => {
     setLoading(true);
     try {
@@ -117,7 +147,7 @@ function IntakeFiles({ type = "employee" }: EmployeeProps) {
         >
           <div className="flex w-full justify-between ">
             <span className=" flex items-center justify-center text-4xl font-semibold">
-             Intake Files
+              Intake Files
             </span>
             {currentUser.role === "admin" && (
               <button
@@ -137,8 +167,8 @@ function IntakeFiles({ type = "employee" }: EmployeeProps) {
 
           <div className=" overflow-y-auto">
             {list.length > 0 ? (
-              <EmployeesTable
-                list={list}
+              <IntakeFilesTable
+                files={intakeFiles}
                 modalState={modalState}
                 setModalState={setModalState}
                 updateTaskData={updateData}
@@ -164,4 +194,4 @@ function IntakeFiles({ type = "employee" }: EmployeeProps) {
   );
 }
 
-export default IntakeFiles;
+export default IntakeFilesComponent;
