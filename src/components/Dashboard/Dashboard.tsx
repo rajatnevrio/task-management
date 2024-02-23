@@ -41,12 +41,12 @@ const Dashboard = ({ type }: DashboardProps) => {
     }
   };
   const navigate = useNavigate();
-  const updateTaskData = () => {
-    getTaskData(details?.name);
+  const updateTaskData = (noLoader?: boolean) => {
+    getTaskData(details?.name, noLoader);
   };
-  const getTaskData = async (name2: string | undefined) => {
+  const getTaskData = async (name2: string | undefined, noLoader?: boolean) => {
     const taskCollection = collection(db, "tasks");
-    setLoading(true);
+    !noLoader && setLoading(true);
     try {
       const querySnapshot = await getDocs(
         currentUser.role === "admin" || currentUser.role === "task-creator"
@@ -78,6 +78,14 @@ const Dashboard = ({ type }: DashboardProps) => {
     await getUserDetail();
     // await getTaskData();
   };
+  useEffect(() => {
+    const interval = setInterval(() => {
+      updateTaskData(true);
+      console.log("data updated every 20 seconds");
+    }, 20000);
+
+    return () => clearInterval(interval);
+  }, []);
   useEffect(() => {
     getData();
 

@@ -209,7 +209,7 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
           {" "}
           {currentUser.role === "admin" && (
             <TrashIcon
-              title="Delete task"
+              title="Delete file"
               style={{
                 height: "30px",
                 width: "30px",
@@ -301,7 +301,7 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
           <span className="flex gap-x-2">
             {/* (Selected files): {getTotalPages(filesToAssign)} */}
             <TrashIcon
-              title="Delete task"
+              title="Delete file"
               style={{
                 height: "28px",
                 width: "28px",
