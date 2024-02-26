@@ -98,7 +98,6 @@ const UploadFiles: React.FC<AddEmployeeProps> = ({
           if (isPDF(fileContent)) {
             try {
               totalPages = await countPDFPages(file);
-              console.log("Total pages:", totalPages);
             } catch (error) {
               console.error("Error counting PDF pages:", error);
             }
@@ -336,7 +335,7 @@ const UploadFiles: React.FC<AddEmployeeProps> = ({
                           {" "}
                           No Files Selected
                           <span className="text-gray-500">
-                            (Drag and Drop files here)
+                            (Choose Files or Drag and Drop files here)
                           </span>
                         </div>
                       )}

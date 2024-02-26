@@ -27,7 +27,6 @@ const Dashboard = ({ type }: DashboardProps) => {
   const [details, setDetails] = useState<UserDetails | undefined>();
   const getUserDetail = async () => {
     try {
-      // Log the userRole for debugging
       if (currentUser) {
         await setDetails({
           name: currentUser.displayName,

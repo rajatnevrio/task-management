@@ -25,32 +25,44 @@ import { AddModalState, Employee, IntakeFiles } from "../../types";
 import { deleteObject, getStorage, ref } from "firebase/storage";
 import LoaderComp from "../Loader";
 
-interface rolesApi {
-  email: string;
-  name: string;
-  role: string;
-  displayName: string;
-  uid: string;
-}
 interface IntakeFilesTableProps {
   files: IntakeFiles[];
   modalState: AddModalState;
   setModalState: Dispatch<SetStateAction<AddModalState>>;
   updateTaskData: () => void;
   type?: string;
+  setSidebarOpen: Dispatch<SetStateAction<{ isOpen: boolean; id: string }>>;
+  filesToAssign: string[]; 
+  setFilesToAssign: Dispatch<SetStateAction<string[]>>;
 }
 interface ModalState {
   isOpen: boolean;
   file_id: string;
   index: number;
 }
-
+interface FileToAssign {
+  fileId: string;
+  fileName: string;
+  url: string;
+  totalPages: number;
+}
+export function getTotalPages(files: { total_pages?: string | number }[]): number {
+  return files.reduce<number>((totalPages, file) => {
+    const totalPagesOfFile =
+      typeof file.total_pages === "string"
+        ? Number(file.total_pages)
+        : file.total_pages || 0;
+    return totalPages + totalPagesOfFile;
+  }, 0);
+}
 const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
   files,
   modalState,
   setModalState,
   updateTaskData,
-  type,
+  setSidebarOpen,
+  filesToAssign,
+  setFilesToAssign
 }) => {
   const { currentUser } = useAuth();
 
@@ -60,7 +72,6 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
     index: 0,
   });
   const [loading, setLoading] = useState<boolean>(false);
-  const [filesToAssign, setFilesToAssign] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState<boolean>(false);
   const handleMultiDelete = async (fileIds: string[]) => {
     try {
@@ -189,7 +200,7 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
   };
   const tableRows = files.map((element, index) => {
     return (
-      <tr className="items text-md text-center">
+      <tr className="items text-md text-center" key={index}>
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {" "}
           <input
@@ -266,16 +277,6 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
       setFilesToAssign([]);
     }
   };
-  function getTotalPages(files: { total_pages?: string | number }[]): number {
-    console.log("first", files);
-    return files.reduce<number>((totalPages, file) => {
-      const totalPagesOfFile =
-        typeof file.total_pages === "string"
-          ? Number(file.total_pages)
-          : file.total_pages || 0;
-      return totalPages + totalPagesOfFile;
-    }, 0);
-  }
   return (
     <>
       <div className="flex ">
@@ -320,7 +321,16 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
                 })
               }
             />
-            <button className="flex gap-x-2 bg-blue-500 rounded-md p-1 px-2 text-white items-center">
+            <button
+              className="flex gap-x-2 bg-blue-500 rounded-md p-1 px-2 text-white items-center"
+              onClick={() =>
+                setSidebarOpen((prevSidebarState) => ({
+                  ...prevSidebarState,
+                  isOpen: !prevSidebarState.isOpen,
+                  id: "",
+                }))
+              }
+            >
               Assign
               <ArrowRightIcon
                 title="Delete task"
@@ -331,9 +341,6 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
                   color: "white",
                 }}
                 className="hover:scale-125 rounded-full "
-                onClick={() => {
-                  handleMultiDelete(filesToAssign);
-                }}
               />
             </button>
           </span>

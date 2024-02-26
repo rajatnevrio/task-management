@@ -19,6 +19,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { Dialog, Transition } from "@headlessui/react";
 import {
@@ -39,10 +40,11 @@ import {
 } from "firebase/storage";
 import { toast } from "react-toastify";
 import LoaderComp from "../Loader";
-import { UserDetails } from "../../types";
+import { IntakeFiles, UserDetails } from "../../types";
 import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.mjs";
 import axios from "axios";
+import { getTotalPages } from "../tables/IntakeFilesTable";
 interface SidebarState {
   isOpen: boolean;
   id: string;
@@ -53,6 +55,7 @@ interface AddTaskDrawerProps {
   setSidebarOpen: Dispatch<SetStateAction<{ isOpen: boolean; id: string }>>;
   updateTaskData: () => void;
   userDetails?: UserDetails;
+  filesToAssign?: IntakeFiles[];
 }
 interface rolesApi {
   email: string;
@@ -109,6 +112,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   setSidebarOpen,
   updateTaskData,
   userDetails,
+  filesToAssign,
 }) => {
   const [formData, setFormData] = useState({
     // title: "",
@@ -293,7 +297,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       const docRef = doc(collection(db, "tasks"), docId);
       await updateDoc(docRef, updatedData);
     } catch (error) {
-
       console.error(`Error updating document with ID ${docId}:`, error);
       throw error;
     }
@@ -364,7 +367,6 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
           })
         );
       }
-  
       // Check if there are any files in submitFiles
       if (formData.submitFiles.length > 0) {
         // Delete all files in submitFiles
@@ -375,21 +377,20 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
           })
         );
       }
-  
+
       // Clear both sourceFiles and submitFiles arrays
       setFormData((prevData: any) => ({
         ...prevData,
         sourceFiles: [],
         submitFiles: [],
       }));
-  
+
       // toast.success("All files deleted successfully");
     } catch (error) {
       console.error("Error deleting files:", error);
       // toast.error("Error deleting files");
     }
   };
-  
 
   const handleFileDelete = async (fileId: string, type: string) => {
     try {
@@ -502,7 +503,76 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     const newTitleId = `MS-JOB${String(newNum).padStart(5, "0")}`;
     setJobId(newTitleId);
   };
+
+  const handleUnAssignedFilesDelete = async (fileIds: string[]) => {
+    try {
+      const deletePromises: Promise<void>[] = [];
+      setLoading({ ...loading, loading: true, type: "main" });
+
+      for (const fileId of fileIds) {
+        const q = query(
+          collection(db, "IntakeFiles"),
+          where("file_id", "==", fileId)
+        );
+
+        // Execute the query
+        const querySnapshot = await getDocs(q);
+
+        // Check if any document matches the query
+        if (!querySnapshot.empty) {
+          // Iterate over the query results (should be only one document)
+          querySnapshot.forEach(async (doc) => {
+            try {
+              // Delete the file from Firebase Storage
+              const storageRef = ref(getStorage(), `Intake/${fileId}`);
+              const deleteStoragePromise = deleteObject(storageRef);
+
+              // Delete the document from Firestore
+              const deleteFirestorePromise = deleteDoc(doc.ref);
+
+              // Add both promises to the array
+              deletePromises.push(deleteStoragePromise, deleteFirestorePromise);
+            } catch (error) {
+              console.error("Error deleting unassigned file:", error);
+
+              setLoading({ ...loading, loading: false, type: "" });
+            }
+          });
+        } else {
+          console.error("No unassigned document found with file_id:", fileId);
+          setLoading({ ...loading, loading: false, type: "" });
+        }
+      }
+      // Wait for all promises to resolve
+      await Promise.all(deletePromises);
+      // Display a single toast when all files are deleted
+      console.log("  unassigned files deleted successfully");
+      setLoading({ ...loading, loading: false, type: "" });
+      updateTaskData();
+    } catch (error) {
+      console.error("Error deleting unassigned files:", error);
+      setLoading({ ...loading, loading: false, type: "" });
+    }
+  };
   useEffect(() => {
+    if (filesToAssign && filesToAssign.length > 0) {
+      const initialSourceFiles = filesToAssign.map((file) => ({
+        name: file.file_name,
+        url: file.url,
+        id: file.file_id,
+        status: false, // You can set a default status here
+      }));
+
+      setFormData((prevData: any) => ({
+        ...prevData,
+        numberOfSlides: getTotalPages(filesToAssign),
+        sourceFiles: initialSourceFiles,
+      }));
+      // setFormData(prevData:any => ({
+      //   ...prevData,
+      //   sourceFiles: initialSourceFiles
+      // }));
+    }
     if (sidebarOpen?.id?.length > 1) {
       getDocById(sidebarOpen.id);
     }
@@ -596,14 +666,17 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         });
         await setDoc(counterDocRef, { lastJobNumber: newJobNumber });
       }
-
+      if (filesToAssign && filesToAssign.length > 0) {
+        const file_id_toDelete = filesToAssign.map((file) => file.file_id);
+       await  handleUnAssignedFilesDelete(file_id_toDelete);
+      }
       // Update the job counter
 
       updateTaskData();
       setLoading({ ...loading, loading: false, type: "" });
 
       // Close the modal
-      setSidebarOpen((prevSidebarState) => ({
+     !loading.loading && setSidebarOpen((prevSidebarState) => ({
         ...prevSidebarState,
         isOpen: !prevSidebarState.isOpen,
         id: "",

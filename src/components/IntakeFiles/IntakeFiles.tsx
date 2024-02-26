@@ -28,7 +28,10 @@ type TypeLabels = {
     button: string;
   };
 };
-
+interface SidebarState {
+  isOpen: boolean;
+  id: string;
+}
 export const typeLabels: TypeLabels = {
   task_creator: {
     default: "task-creator",
@@ -46,17 +49,16 @@ export const typeLabels: TypeLabels = {
     button: "Admin",
   },
 };
-export const getTypeLabel = (type: string, context = "default"): string => {
-  const label = typeLabels[type];
-  if (typeof label === "object") {
-    return label[context as keyof typeof label] || label.default;
-  }
-  return label || "Unknown";
-};
-function IntakeFilesComponent({ type = "employee" }: EmployeeProps) {
+function IntakeFilesComponent() {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState<boolean>(false);
   const [intakeFiles, setIntakeFiles] = useState<IntakeFiles[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState<SidebarState>({
+    isOpen: false,
+    id: "",
+  });
+  const [details, setDetails] = useState<UserDetails | undefined>();
+  const [filesToAssign, setFilesToAssign] = useState<string[]>([]);
 
   const [modalState, setModalState] = useState<AddModalState>({
     isOpen: false,
@@ -67,7 +69,21 @@ function IntakeFilesComponent({ type = "employee" }: EmployeeProps) {
       // Add other properties as needed
     },
   });
-  const [list, setList] = useState<rolesApi[]>([]);
+
+  const getUserDetail = async () => {
+    try {
+      // Log the userRole for debugging
+      if (currentUser) {
+        await setDetails({
+          name: currentUser.displayName,
+          email: currentUser.email,
+          role: currentUser.role,
+        });
+      }
+    } catch (error) {
+      console.error("Error getting user detail:", error);
+    }
+  };
 
   const navigate = useNavigate();
   const updateData = () => {
@@ -75,61 +91,39 @@ function IntakeFilesComponent({ type = "employee" }: EmployeeProps) {
   };
   const fetchIntakeFiles = async () => {
     try {
+      setLoading(true);
       const IntakeFilesCollection = collection(db, "IntakeFiles");
       const q = query(IntakeFilesCollection);
-  
       const querySnapshot = await getDocs(q);
-  
       const files = querySnapshot.docs.map((doc) => {
         const data = doc.data();
         return {
           file_name: data.file_name,
           total_pages: data.total_pages,
           url: data.url,
-          file_id: data.file_id
+          file_id: data.file_id,
         };
       });
-      console.log("first", files);
       setIntakeFiles(files);
+      setLoading(false);
     } catch (error) {
+      setLoading(false);
+
       console.error("Error fetching types of jobs:", error);
       // Handle error accordingly
     }
   };
-  
   useEffect(() => {
-    fetchIntakeFiles();
-  }, []);
-  const getData = async () => {
-    setLoading(true);
-    try {
-      // Replace the API call with the getAllUsers API using Axios
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/getUsersByRole/${
-          type && getTypeLabel(type, "default")
-        }`
-      );
-
-      const users = response.data;
-      setLoading(false);
-
-      setList(users);
-    } catch (error: any) {
-      setLoading(false);
-
-      console.error("Error fetching user data:", error.message);
-      // Handle error accordingly, e.g., show an error message to the user
-    }
-  };
-
-  useEffect(() => {
-    getData();
+    getUserDetail();
 
     if (!currentUser) {
       navigate("/signin");
     } else {
     }
-  }, [type]);
+  }, [currentUser]);
+  useEffect(() => {
+    fetchIntakeFiles();
+  }, []);
 
   if (!currentUser) {
     return <LoaderComp />;
@@ -142,16 +136,14 @@ function IntakeFilesComponent({ type = "employee" }: EmployeeProps) {
           <LoaderComp />
         </div>
       ) : (
-        <div
-          className={`${type !== "admin" ? "m-8" : ""}  w-full flex flex-col`}
-        >
+        <div className={`w-full flex flex-col m-8`}>
           <div className="flex w-full justify-between ">
             <span className=" flex items-center justify-center text-4xl font-semibold">
               Intake Files
             </span>
             {currentUser.role === "admin" && (
               <button
-                title={type && getTypeLabel(type, "button")}
+                title={"Upload files"}
                 onClick={() => {
                   setModalState((prev) => ({
                     ...prev,
@@ -166,17 +158,19 @@ function IntakeFilesComponent({ type = "employee" }: EmployeeProps) {
           </div>
 
           <div className=" overflow-y-auto">
-            {list.length > 0 ? (
+            {intakeFiles.length > 0 && !loading ? (
               <IntakeFilesTable
                 files={intakeFiles}
                 modalState={modalState}
                 setModalState={setModalState}
                 updateTaskData={updateData}
-                type={type}
+                setSidebarOpen={setSidebarOpen}
+                filesToAssign={filesToAssign}
+                setFilesToAssign={setFilesToAssign}
               />
             ) : (
               <p className="flex text-xl justify-center items-center h-[300px]">
-                No {type && getTypeLabel(type, "button")} found
+                No Unassigned Files found
               </p>
             )}
           </div>
@@ -185,6 +179,15 @@ function IntakeFilesComponent({ type = "employee" }: EmployeeProps) {
               modalState={modalState}
               setModalState={setModalState}
               updateTaskData={updateData}
+            />
+          )}
+          {sidebarOpen.isOpen && (
+            <AddTaskDrawer
+              sidebarOpen={sidebarOpen}
+              setSidebarOpen={setSidebarOpen}
+              userDetails={details}
+              updateTaskData={updateData}
+              filesToAssign={ intakeFiles.filter(file => filesToAssign.includes(file.file_id))}
             />
           )}
         </div>
