@@ -66,7 +66,7 @@ function IntakeFilesComponent() {
       displayName: "",
       uid: "",
       email: "",
-      // Add other properties as needed
+      role: "",
     },
   });
 
@@ -187,7 +187,9 @@ function IntakeFilesComponent() {
               setSidebarOpen={setSidebarOpen}
               userDetails={details}
               updateTaskData={updateData}
-              filesToAssign={ intakeFiles.filter(file => filesToAssign.includes(file.file_id))}
+              filesToAssign={intakeFiles.filter((file) =>
+                filesToAssign.includes(file.file_id)
+              )}
             />
           )}
         </div>

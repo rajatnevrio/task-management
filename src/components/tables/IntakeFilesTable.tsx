@@ -210,7 +210,7 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
           />
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">{index + 1}.</td>
-        <td className="px-3 py-4 whitespace-pre-line overflow-hidden border-r max-w-[45vw] break-all">
+        <td className="px-3 py-4 whitespace-pre-line overflow-hidden border-r text-left max-w-[45vw] break-all">
           {element.file_name}
         </td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
@@ -281,7 +281,7 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
     <>
       <div className="flex ">
         {files.length > 0 && (
-          <span>
+          <span className="text-xl font-semibold">
             Total Number of Unassigned Pages: &nbsp;
             {getTotalPages(files)}
           </span>

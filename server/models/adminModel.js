@@ -41,13 +41,21 @@ class AdminModel {
     return usersByRole;
   }
   static async updateUser(uid, updatedData) {
+    const { password, role, ...userData } = updatedData;
+
+    // Update user password if password is provided
+    if (password) {
+        await admin.auth().updateUser(uid, { password });
+    }
     const userRecord = await admin.auth().updateUser(uid, updatedData);
-  
+    if (role) {
+      await admin.auth().setCustomUserClaims(uid, { role });
+  }
     return {
       uid: userRecord.uid,
       email: userRecord.email,
       displayName: userRecord.displayName,
-      role: userRecord.customClaims ? userRecord.customClaims.role : null,
+      role: role || (userRecord.customClaims ? userRecord.customClaims.role : null),
     };
   }
   static async deleteUser(uid) {

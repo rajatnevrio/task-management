@@ -1,5 +1,4 @@
 import React, {
-  ChangeEvent,
   Dispatch,
   Fragment,
   SetStateAction,
@@ -7,36 +6,15 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  DocumentReference,
-  addDoc,
-  arrayUnion,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where,
-} from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
 import { Dialog, Transition } from "@headlessui/react";
-import { CheckIcon } from "@heroicons/react/24/outline";
-import { DocumentData } from "@firebase/firestore-types";
 
 import { db } from "../../firebase/firebase";
-import {
-  getStorage,
-  ref,
-  uploadBytesResumable,
-  getDownloadURL,
-} from "firebase/storage";
 import { toast } from "react-toastify";
 import { useAuth } from "../../contexts/AuthContext";
 import LoaderComp from "../Loader";
-import { AddModalState, UserDetails } from "../../types";
-import { Link, useNavigate } from "react-router-dom";
+import { AddModalState } from "../../types";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getTypeLabel } from "../Employees/Employees";
 interface AddEmployeeProps {
@@ -46,11 +24,6 @@ interface AddEmployeeProps {
   type?: string;
 }
 
-interface rolesApi {
-  email: string;
-  name: string;
-  role: string;
-}
 const AddEmployee: React.FC<AddEmployeeProps> = ({
   modalState,
   setModalState,
@@ -58,8 +31,10 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
   type,
 }) => {
   const { signUp, currentUser } = useAuth();
+  const [passwordChange, setPasswordChange] = useState<boolean>(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const roleRef = useRef<HTMLSelectElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const confirmPasswordRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string>("");
@@ -122,12 +97,21 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
       const uid = modalState.details?.uid;
       const displayName = nameRef?.current?.value;
       const email = emailRef?.current?.value;
+      const role = roleRef?.current?.value;
+      const password = passwordRef?.current?.value;
+      if (passwordChange && passwordRef.current && confirmPasswordRef.current) {
+        if (passwordRef.current.value !== confirmPasswordRef.current.value) {
+          return setError("Password do not match");
+        }
+      }
 
       // Make a PUT request to your API endpoint
       const response = await axios
         .put(`${process.env.REACT_APP_API_URL}/updateUser/${uid}`, {
           displayName,
           email,
+          role,
+          password,
         })
         .catch((err) => {
           toast.error(err.message);
@@ -179,10 +163,18 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
       modalState.details &&
       modalState.details.displayName &&
       modalState.details.displayName.length > 1 &&
-      nameRef.current
+      nameRef.current &&
+      modalState.details.role.length > 1 &&
+      roleRef.current
     ) {
       nameRef.current.value = modalState?.details?.displayName;
       emailRef.current!.value = modalState?.details?.email;
+      roleRef.current!.value = modalState?.details?.role;
+    }
+    if (type) {
+      console.log("first", type);
+      roleRef.current!.value =
+        type === "employee" ? "employee" : "task-creator";
     }
   }, [modalState.details]);
   const initState = {
@@ -292,8 +284,56 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                                     />
                                   </div>
                                 </div>
-
-                                {modalState.details.displayName.length < 1 && (
+                                <div>
+                                  <label
+                                    htmlFor="role"
+                                    className="block text-sm font-medium leading-6 text-gray-900"
+                                  >
+                                    Role
+                                  </label>
+                                  <div className="mt-2">
+                                    <select
+                                      id="role"
+                                      name="role"
+                                      autoComplete="role"
+                                      required
+                                      ref={roleRef}
+                                      disabled={
+                                        modalState.details.displayName.length <
+                                        1
+                                      }
+                                      className="block p-3 w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                    >
+                                      {/* <option value="">Select Role</option> */}
+                                      <option value="task-creator">
+                                        Intake
+                                      </option>
+                                      <option value="employee">Employee</option>
+                                    </select>
+                                  </div>
+                                </div>
+                                {modalState.details.displayName.length > 1 && (
+                                  <div className="mt-4 flex items-center">
+                                    <input
+                                      id="changePassword"
+                                      name="changePassword"
+                                      type="checkbox"
+                                      checked={passwordChange}
+                                      onChange={() =>
+                                        setPasswordChange(!passwordChange)
+                                      }
+                                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                    />
+                                    <label
+                                      htmlFor="changePassword"
+                                      className="ml-2 block text-sm text-gray-900 leading-5"
+                                    >
+                                      Change Password
+                                    </label>
+                                  </div>
+                                )}
+                                {(modalState.details.displayName.length < 1 ||
+                                  passwordChange) && (
                                   <>
                                     <div>
                                       <label

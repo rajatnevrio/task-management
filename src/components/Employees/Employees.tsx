@@ -59,7 +59,7 @@ function Employees({ type }: EmployeeProps) {
       displayName: "",
       uid: "",
       email: "",
-      // Add other properties as needed
+      role:""
     },
   });
   const [list, setList] = useState<rolesApi[]>([]);
