@@ -1,12 +1,16 @@
-
 const adminModel = require("../models/adminModel");
 
 class AdminController {
   static async createUser(req, res) {
     try {
       const { email, password, displayName } = req.body;
-      const userRole = req.body.role || "employee"
-      const result = await adminModel.createUser({ email, password, displayName,role:userRole });
+      const userRole = req.body.role || "employee";
+      const result = await adminModel.createUser({
+        email,
+        password,
+        displayName,
+        role: userRole,
+      });
       res.status(200).json(result);
     } catch (error) {
       console.error("Error creating user:", error.message);
@@ -29,7 +33,7 @@ class AdminController {
     try {
       const result = await adminModel.getAllUsers();
       const employeeUsers = result;
-    
+
       res.status(200).json(employeeUsers);
     } catch (error) {
       console.error("Error retrieving all users:", error);
@@ -38,10 +42,11 @@ class AdminController {
   }
   static async getUsersByRole(req, res) {
     try {
-      const role = req.params.role; // assuming role is provided in the request parameters
+      const role = req.params.role; 
       const result = await adminModel.getAllUsers();
-      const usersByRole = result.filter((user) => user.role === role);
-
+      const usersByRole = result.filter(
+        (user) => user.role === role || user.role === "task-creator"  //task creators can also do a job 
+      );
       res.status(200).json(usersByRole);
     } catch (error) {
       console.error("Error retrieving users by role:", error);
@@ -52,7 +57,7 @@ class AdminController {
     try {
       const { uid } = req.params;
       const updatedData = req.body;
-  
+
       const result = await adminModel.updateUser(uid, updatedData);
       res.status(200).json(result);
     } catch (error) {
@@ -60,7 +65,7 @@ class AdminController {
       res.status(500).json({ error: "Error updating user" });
     }
   }
- static async deleteUser(req, res) {
+  static async deleteUser(req, res) {
     try {
       const email = req.params.email;
       const result = await adminModel.deleteUser(email);

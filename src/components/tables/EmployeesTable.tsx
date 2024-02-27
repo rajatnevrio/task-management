@@ -82,7 +82,7 @@ const EmployeesTable: React.FC<EmployeeTableProps> = ({
 
   const tableRows = list.map((element, index) => {
     return (
-      <tr className="items text-md text-center">
+      <tr className="items text-md text-center" key={index}>
         <td className="px-3 py-4 whitespace-nowrap border-r">{index + 1}</td>
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {element.displayName}
