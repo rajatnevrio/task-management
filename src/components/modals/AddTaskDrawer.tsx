@@ -37,6 +37,7 @@ import {
   uploadBytesResumable,
   getDownloadURL,
   deleteObject,
+  uploadBytes,
 } from "firebase/storage";
 import { toast } from "react-toastify";
 import LoaderComp from "../Loader";
@@ -554,32 +555,85 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       setLoading({ ...loading, loading: false, type: "" });
     }
   };
-  useEffect(() => {
-    if (filesToAssign && filesToAssign.length > 0) {
-      const initialSourceFiles = filesToAssign.map((file) => ({
-        name: file.file_name,
-        url: file.url,
-        id: file.file_id,
-        status: false, // You can set a default status here
-      }));
+  const uploadFileToStorage = async (
+    url: string,
+    file_id: string
+  ): Promise<string> => {
+    try {
+      setLoading({ ...loading, loading: true, type: "sourceFiles" });
 
-      setFormData((prevData: any) => ({
-        ...prevData,
-        numberOfSlides: getTotalPages(filesToAssign),
-        sourceFiles: initialSourceFiles,
-      }));
-      // setFormData(prevData:any => ({
-      //   ...prevData,
-      //   sourceFiles: initialSourceFiles
-      // }));
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch file (${response.status}): ${response.statusText}`
+        );
+      }
+
+      const blob = await response.blob();
+      const storageRef = ref(storage, `files/${file_id}`);
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      setLoading({ ...loading, loading: false, type: "sourceFiles" });
+      return downloadURL;
+    } catch (error: any) {
+      setLoading({ ...loading, loading: false, type: "sourceFiles" });
+      console.error("Error uploading file to storage:", error);
+      throw error;
     }
-    if (sidebarOpen?.id?.length > 1) {
-      getDocById(sidebarOpen.id);
-    }
-    getJobId();
-    getData();
-    fetchTypesOfJobs();
+  };
+
+  useEffect(() => {
+    const initializeSourceFiles = async () => {
+      try {
+        // Call getJobId first
+        await getJobId();
+
+        // Then call getData
+        await getData();
+
+        // Then call fetchTypesOfJobs
+        await fetchTypesOfJobs();
+
+        // Finally call initializeSourceFiles
+        if (filesToAssign && filesToAssign.length > 0) {
+          const uploadPromises = filesToAssign.map(async (file) => {
+            try {
+              const url = await uploadFileToStorage(file.url, file.file_id);
+              return {
+                name: file.file_name,
+                url,
+                id: file.file_id,
+                status: false,
+                totalPages: file.total_pages,
+              };
+            } catch (error) {
+              console.error("Error uploading file:", error);
+            }
+          });
+
+          const resolvedFiles = await Promise.all(uploadPromises);
+          setFormData((prevData: any) => ({
+            ...prevData,
+            numberOfSlides: getTotalPages(filesToAssign),
+            sourceFiles: resolvedFiles,
+          }));
+        }
+
+        if (sidebarOpen?.id?.length > 1) {
+          await getDocById(sidebarOpen.id);
+        }
+      } catch (error) {
+        console.error("Error initializing source files:", error);
+        // Handle error accordingly
+      }
+    };
+
+    // Call the initialization function
+    initializeSourceFiles();
   }, []);
+
   const handleDeleteJobType = async () => {
     try {
       setLoading({ ...loading, loading: true, type: "jobType" });
@@ -668,7 +722,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       }
       if (filesToAssign && filesToAssign.length > 0) {
         const file_id_toDelete = filesToAssign.map((file) => file.file_id);
-       await  handleUnAssignedFilesDelete(file_id_toDelete);
+        await handleUnAssignedFilesDelete(file_id_toDelete);
       }
       // Update the job counter
 
@@ -676,11 +730,12 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       setLoading({ ...loading, loading: false, type: "" });
 
       // Close the modal
-     !loading.loading && setSidebarOpen((prevSidebarState) => ({
-        ...prevSidebarState,
-        isOpen: !prevSidebarState.isOpen,
-        id: "",
-      }));
+      !loading.loading &&
+        setSidebarOpen((prevSidebarState) => ({
+          ...prevSidebarState,
+          isOpen: !prevSidebarState.isOpen,
+          id: "",
+        }));
     } catch (error: any) {
       toast.error(error);
       setLoading({ ...loading, loading: false, type: "" });
@@ -1212,6 +1267,11 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                               )
                                             )}
                                           </ul>
+                                        </div>
+                                      ) : loading.loading &&
+                                        loading.type === "sourceFiles" ? (
+                                        <div className="max-h-[68px] py-2 flex justify-center w-full">
+                                          <LoaderComp height="55" />{" "}
                                         </div>
                                       ) : (
                                         <span

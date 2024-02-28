@@ -1,0 +1,8 @@
+[
+    {
+      "origin": ["http://localhost:3000","https://apps.mssketch.com"],
+      "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      "responseHeader": ["http://localhost:3000","https://apps.mssketch.com"],
+      "maxAgeSeconds": 3600
+    }
+  ]
