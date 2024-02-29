@@ -97,7 +97,7 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
           querySnapshot.forEach(async (doc) => {
             try {
               // Delete the file from Firebase Storage
-              const storageRef = ref(getStorage(), `Intake/${fileId}`);
+              const storageRef = ref(getStorage(), `files/${fileId}`);
               const deleteStoragePromise = deleteObject(storageRef);
 
               // Delete the document from Firestore
@@ -156,7 +156,7 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
         querySnapshot.forEach(async (doc) => {
           try {
             // Delete the file from Firebase Storage
-            const storageRef = ref(getStorage(), `Intake/${fileId}`);
+            const storageRef = ref(getStorage(), `files/${fileId}`);
             await deleteObject(storageRef);
 
             // Delete the document from Firestore

@@ -525,14 +525,14 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
           querySnapshot.forEach(async (doc) => {
             try {
               // Delete the file from Firebase Storage
-              const storageRef = ref(getStorage(), `Intake/${fileId}`);
-              const deleteStoragePromise = deleteObject(storageRef);
+              // const storageRef = ref(getStorage(), `files/${fileId}`);
+              // const deleteStoragePromise = deleteObject(storageRef);
 
               // Delete the document from Firestore
               const deleteFirestorePromise = deleteDoc(doc.ref);
 
               // Add both promises to the array
-              deletePromises.push(deleteStoragePromise, deleteFirestorePromise);
+              deletePromises.push(deleteFirestorePromise);
             } catch (error) {
               console.error("Error deleting unassigned file:", error);
 
@@ -555,61 +555,58 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
       setLoading({ ...loading, loading: false, type: "" });
     }
   };
-  const uploadFileToStorage = async (
-    url: string,
-    file_id: string
-  ): Promise<string> => {
-    try {
-      setLoading({ ...loading, loading: true, type: "sourceFiles" });
+  // const uploadFileToStorage = async (
+  //   url: string,
+  //   file_id: string
+  // ): Promise<string> => {
+  //   try {
+  //     setLoading({ ...loading, loading: true, type: "sourceFiles" });
 
-      const response = await fetch(url);
+  //     const response = await fetch(url);
 
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch file (${response.status}): ${response.statusText}`
-        );
-      }
+  //     if (!response.ok) {
+  //       throw new Error(
+  //         `Failed to fetch file (${response.status}): ${response.statusText}`
+  //       );
+  //     }
 
-      const blob = await response.blob();
-      const storageRef = ref(storage, `files/${file_id}`);
-      await uploadBytes(storageRef, blob);
-      const downloadURL = await getDownloadURL(storageRef);
+  //     const blob = await response.blob();
+  //     const storageRef = ref(storage, `files/${file_id}`);
+  //     await uploadBytes(storageRef, blob);
+  //     const downloadURL = await getDownloadURL(storageRef);
 
-      setLoading({ ...loading, loading: false, type: "sourceFiles" });
-      return downloadURL;
-    } catch (error: any) {
-      setLoading({ ...loading, loading: false, type: "sourceFiles" });
-      console.error("Error uploading file to storage:", error);
-      throw error;
-    }
-  };
+  //     setLoading({ ...loading, loading: false, type: "sourceFiles" });
+  //     return downloadURL;
+  //   } catch (error: any) {
+  //     setLoading({ ...loading, loading: false, type: "sourceFiles" });
+  //     console.error("Error uploading file to storage:", error);
+  //     throw error;
+  //   }
+  // };
 
   useEffect(() => {
     const initializeSourceFiles = async () => {
       try {
-        // Call getJobId first
         await getJobId();
 
-        // Then call getData
         await getData();
 
-        // Then call fetchTypesOfJobs
         await fetchTypesOfJobs();
 
         // Finally call initializeSourceFiles
         if (filesToAssign && filesToAssign.length > 0) {
           const uploadPromises = filesToAssign.map(async (file) => {
             try {
-              const url = await uploadFileToStorage(file.url, file.file_id);
+              // const url = await uploadFileToStorage(file.url, file.file_id);
               return {
                 name: file.file_name,
-                url,
+                url: file.url,
                 id: file.file_id,
                 status: false,
                 totalPages: file.total_pages,
               };
             } catch (error) {
-              console.error("Error uploading file:", error);
+              console.error("Error updating the file:", error);
             }
           });
 
@@ -721,7 +718,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         await setDoc(counterDocRef, { lastJobNumber: newJobNumber });
       }
       if (filesToAssign && filesToAssign.length > 0) {
-        const file_id_toDelete = filesToAssign.map((file) => file.file_id);
+        const file_id_toDelete =  filesToAssign?.filter((file)=>  formData.sourceFiles.map(obj => obj.id).includes(file.file_id)).map(file => file.file_id)
         await handleUnAssignedFilesDelete(file_id_toDelete);
       }
       // Update the job counter

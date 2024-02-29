@@ -53,7 +53,7 @@ const UploadFiles: React.FC<AddEmployeeProps> = ({
         const timestamp = Date.now();
         const uniqueId = `${originalFileName}_${timestamp}`;
         const fileId = `${uniqueId}`;
-        const storageRef = ref(storage, `Intake/${fileId}`);
+        const storageRef = ref(storage, `files/${fileId}`);
         await uploadBytes(storageRef, file);
         const downloadUrl = await getDownloadURL(storageRef);
         return { ...fileObj, downloadUrl, uniqueId };
