@@ -32,7 +32,7 @@ interface IntakeFilesTableProps {
   updateTaskData: () => void;
   type?: string;
   setSidebarOpen: Dispatch<SetStateAction<{ isOpen: boolean; id: string }>>;
-  filesToAssign: string[]; 
+  filesToAssign: string[];
   setFilesToAssign: Dispatch<SetStateAction<string[]>>;
 }
 interface ModalState {
@@ -46,7 +46,9 @@ interface FileToAssign {
   url: string;
   totalPages: number;
 }
-export function getTotalPages(files: { total_pages?: string | number }[]): number {
+export function getTotalPages(
+  files: { total_pages?: string | number }[]
+): number {
   return files.reduce<number>((totalPages, file) => {
     const totalPagesOfFile =
       typeof file.total_pages === "string"
@@ -62,7 +64,7 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
   updateTaskData,
   setSidebarOpen,
   filesToAssign,
-  setFilesToAssign
+  setFilesToAssign,
 }) => {
   const { currentUser } = useAuth();
 
@@ -299,6 +301,16 @@ const IntakeFilesTable: React.FC<IntakeFilesTableProps> = ({
               {selectAll ? `Unselect All` : ` Select All `}
             </span>
           </div>
+          <span>
+            {`${filesToAssign.length}`}{" "}
+            {`${filesToAssign.length > 1 ? `Files` : `File`} `} of total{" "}
+            {`${getTotalPages(
+              files.filter((item) =>
+                filesToAssign.map((f) => f).includes(item.file_id)
+              )
+            )}`}{" "}
+            pages
+          </span>
           <span className="flex gap-x-2">
             {/* (Selected files): {getTotalPages(filesToAssign)} */}
             <TrashIcon

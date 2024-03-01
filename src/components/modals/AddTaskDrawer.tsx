@@ -28,6 +28,7 @@ import {
   PencilSquareIcon,
   XMarkIcon,
   ArrowDownTrayIcon,
+  ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
 
 import { db } from "../../firebase/firebase";
@@ -441,7 +442,8 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
   const handleDownloadFile = (
     fileUrl: string,
     fileId: string,
-    fileType: string
+    fileType: string,
+    newTab?: boolean
   ) => {
     setFormData((prevData: any) => {
       const updatedFiles = prevData[fileType].map((file: any) => {
@@ -459,6 +461,9 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
 
     const link = document.createElement("a");
     link.href = fileUrl;
+    link.target = "_blank"; // Open in a new tab
+    if (newTab) {
+    }
     link.download = "";
     document.body.appendChild(link);
     link.click();
@@ -718,7 +723,11 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
         await setDoc(counterDocRef, { lastJobNumber: newJobNumber });
       }
       if (filesToAssign && filesToAssign.length > 0) {
-        const file_id_toDelete =  filesToAssign?.filter((file)=>  formData.sourceFiles.map(obj => obj.id).includes(file.file_id)).map(file => file.file_id)
+        const file_id_toDelete = filesToAssign
+          ?.filter((file) =>
+            formData.sourceFiles.map((obj) => obj.id).includes(file.file_id)
+          )
+          .map((file) => file.file_id);
         await handleUnAssignedFilesDelete(file_id_toDelete);
       }
       // Update the job counter
@@ -1243,7 +1252,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                                     <>
                                                       <ArrowDownTrayIcon
                                                         title="Add file"
-                                                        className="hover:scale-125 pl-2"
+                                                        className="hover:scale-125 pl-1"
                                                         style={{
                                                           height: "32px",
                                                           width: "32px",
@@ -1255,6 +1264,24 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
                                                             file.url,
                                                             file?.id,
                                                             "sourceFiles"
+                                                          )
+                                                        }
+                                                      />
+                                                      <ArrowTopRightOnSquareIcon
+                                                        title="Add file"
+                                                        className="hover:scale-125 pl-1"
+                                                        style={{
+                                                          height: "32px",
+                                                          width: "32px",
+                                                          cursor: "pointer",
+                                                          color: "blue",
+                                                        }}
+                                                        onClick={() =>
+                                                          handleDownloadFile(
+                                                            file.url,
+                                                            file?.id,
+                                                            "sourceFiles",
+                                                            true
                                                           )
                                                         }
                                                       />
