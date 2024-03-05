@@ -42,10 +42,13 @@ class AdminController {
   }
   static async getUsersByRole(req, res) {
     try {
-      const role = req.params.role; 
+      const role = req.params.role;
       const result = await adminModel.getAllUsers();
       const usersByRole = result.filter(
-        (user) => user.role === role || user.role === "task-creator"  //task creators can also do a job 
+        (user) =>
+          role === "all"
+            ? (user.role === "employee" || user.role === "task-creator")
+            : user.role === role //task creators can also do a job
       );
       res.status(200).json(usersByRole);
     } catch (error) {

@@ -3,7 +3,6 @@ import React, {
   Fragment,
   SetStateAction,
   useEffect,
-  useRef,
   useState,
 } from "react";
 import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
@@ -11,10 +10,8 @@ import { Dialog, Transition } from "@headlessui/react";
 
 import { db } from "../../firebase/firebase";
 import { toast } from "react-toastify";
-import { useAuth } from "../../contexts/AuthContext";
 import LoaderComp from "../Loader";
 import { AddModalState } from "../../types";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getTypeLabel } from "../Employees/Employees";
 interface AddEmployeeProps {
@@ -30,22 +27,22 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
   updateTaskData,
   type,
 }) => {
-  const { signUp, currentUser } = useAuth();
   const [passwordChange, setPasswordChange] = useState<boolean>(false);
-  const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
-  const roleRef = useRef<HTMLSelectElement>(null);
-  const nameRef = useRef<HTMLInputElement>(null);
-  const confirmPasswordRef = useRef<HTMLInputElement>(null);
+  const [formValues, setFormValues] = useState({
+    email: modalState.details.email ? modalState.details.email : "",
+    password: "",
+    role: "",
+    name: "",
+    confirmPassword: "",
+  });
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (passwordRef.current && confirmPasswordRef.current) {
-      if (passwordRef.current.value !== confirmPasswordRef.current.value) {
+    if (formValues.password && formValues.confirmPassword) {
+      if (formValues.password !== formValues.confirmPassword) {
         return setError("Password do not match");
       }
     }
@@ -56,12 +53,12 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
       if (modalState.details.displayName.length > 1) {
         await handleUpdateUser();
       }
-      if (emailRef.current && passwordRef.current && nameRef.current) {
+      if (formValues.email && formValues.password && formValues.name && modalState.details.displayName.length < 1) {
         const response = await axios
           .post(` ${process.env.REACT_APP_API_URL}/createUser`, {
-            email: emailRef.current.value,
-            password: passwordRef.current.value,
-            displayName: nameRef.current.value,
+            email: formValues.email,
+            password: formValues.password,
+            displayName: formValues.name,
             role: type && getTypeLabel(type, "default"),
           })
           .catch((err) => {
@@ -95,12 +92,11 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
     try {
       setLoading(true);
       const uid = modalState.details?.uid;
-      const displayName = nameRef?.current?.value;
-      const email = emailRef?.current?.value;
-      const role = roleRef?.current?.value;
-      const password = passwordRef?.current?.value;
-      if (passwordChange && passwordRef.current && confirmPasswordRef.current) {
-        if (passwordRef.current.value !== confirmPasswordRef.current.value) {
+      const displayName = formValues.name;
+      const email = formValues.email;
+      const role = formValues.role;
+      if (passwordChange && formValues.password && formValues.confirmPassword) {
+        if (formValues.password !== formValues.confirmPassword) {
           return setError("Password do not match");
         }
       }
@@ -111,7 +107,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
           displayName,
           email,
           role,
-          password,
+          // password,
         })
         .catch((err) => {
           toast.error(err.message);
@@ -163,20 +159,24 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
       modalState.details &&
       modalState.details.displayName &&
       modalState.details.displayName.length > 1 &&
-      nameRef.current &&
-      modalState.details.role.length > 1 &&
-      roleRef.current
+      modalState.details.role.length > 1
     ) {
-      nameRef.current.value = modalState?.details?.displayName;
-      emailRef.current!.value = modalState?.details?.email;
-      roleRef.current!.value = modalState?.details?.role;
+      setFormValues((prev) => ({
+        ...prev,
+        name: modalState?.details?.displayName,
+        email: modalState?.details?.email,
+        role: modalState?.details?.role,
+      }));
     }
-    if (type && roleRef.current) {
+    if (type && formValues.role) {
       console.log("first", type);
-      roleRef.current!.value =
-        type === "employee" ? "employee" : "task-creator";
+      setFormValues((prev) => ({
+        ...prev,
+        role: type === "employee" ? "employee" : "task-creator",
+      }));
     }
   }, [modalState.details]);
+
   const initState = {
     email: "",
     name: "",
@@ -191,13 +191,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
           <Dialog
             as="div"
             className="relative z-10"
-            onClose={() =>
-              setModalState((prev) => ({
-                ...prev,
-                isOpen: false,
-                details: initState,
-              }))
-            }
+            onClose={() => console.log("first")}
           >
             <Transition.Child
               as={Fragment}
@@ -260,7 +254,13 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                                       type="name"
                                       autoComplete="name"
                                       required
-                                      ref={nameRef}
+                                      value={formValues.name}
+                                      onChange={(e) =>
+                                        setFormValues((prev) => ({
+                                          ...prev,
+                                          name: e.target.value,
+                                        }))
+                                      } //
                                       className="block p-3 w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                     />
                                   </div>
@@ -279,7 +279,13 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                                       type="email"
                                       autoComplete="email"
                                       required
-                                      ref={emailRef}
+                                      value={formValues.email}
+                                      onChange={(e) =>
+                                        setFormValues((prev) => ({
+                                          ...prev,
+                                          email: e.target.value,
+                                        }))
+                                      } //
                                       className="block p-3 w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                     />
                                   </div>
@@ -297,11 +303,13 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                                       name="role"
                                       autoComplete="role"
                                       required
-                                      ref={roleRef}
-                                      disabled={
-                                        modalState.details.displayName.length <
-                                        1
-                                      }
+                                      value={formValues.role}
+                                      onChange={(e) =>
+                                        setFormValues((prev) => ({
+                                          ...prev,
+                                          role: e.target.value,
+                                        }))
+                                      } //
                                       className="block p-3 w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                     >
                                       {/* <option value="">Select Role</option> */}
@@ -352,7 +360,13 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                                             modalState.details.displayName
                                               .length < 1
                                           }
-                                          ref={passwordRef}
+                                          value={formValues.password}
+                                          onChange={(e) =>
+                                            setFormValues((prev) => ({
+                                              ...prev,
+                                              password: e.target.value,
+                                            }))
+                                          } //
                                           className="block w-full p-3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                         />
                                       </div>
@@ -374,7 +388,13 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                                             modalState.details.displayName
                                               .length < 1
                                           }
-                                          ref={confirmPasswordRef}
+                                          value={formValues.confirmPassword}
+                                          onChange={(e) =>
+                                            setFormValues((prev) => ({
+                                              ...prev,
+                                              confirmPassword: e.target.value,
+                                            }))
+                                          } //
                                           className="block w-full p-3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                         />
                                       </div>
@@ -388,7 +408,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                                   </div>
                                 )}
 
-                                <div>
+                                <div className="flex flex-col gap-y-4">
                                   <button
                                     type="submit"
                                     disabled={loading}
@@ -411,6 +431,19 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
                                             ? "Update"
                                             : "Add"
                                         }`}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="mt-3 inline-flex w-full bg-red-500 text-white hover:text-black mt-6  justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
+                                    onClick={() =>
+                                      setModalState((prev) => ({
+                                        ...prev,
+                                        isOpen: false,
+                                        details: initState,
+                                      }))
+                                    }
+                                  >
+                                    Cancel
                                   </button>
                                 </div>
                               </form>

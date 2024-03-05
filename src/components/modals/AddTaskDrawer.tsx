@@ -474,7 +474,7 @@ const AddTaskDrawer: React.FC<AddTaskDrawerProps> = ({
     try {
       // Replace the API call with the getAllUsers API using Axios
       const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/getUsersByRole/employee`
+        `${process.env.REACT_APP_API_URL}/getUsersByRole/all`
       );
       const users = response.data;
       setList(users);
