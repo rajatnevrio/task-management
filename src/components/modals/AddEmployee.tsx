@@ -171,7 +171,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({
       emailRef.current!.value = modalState?.details?.email;
       roleRef.current!.value = modalState?.details?.role;
     }
-    if (type) {
+    if (type && roleRef.current) {
       console.log("first", type);
       roleRef.current!.value =
         type === "employee" ? "employee" : "task-creator";
