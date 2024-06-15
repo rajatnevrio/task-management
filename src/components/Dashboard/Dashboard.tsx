@@ -25,26 +25,28 @@ const Dashboard = ({ type }: DashboardProps) => {
     id: "",
   });
   const [details, setDetails] = useState<UserDetails | undefined>();
-  const getUserDetail = async () => {
+  const getUserDetail = async (): Promise<UserDetails | undefined> => {
     try {
       if (currentUser) {
-        await setDetails({
+        const userDetails: UserDetails = {
           name: currentUser.displayName,
           email: currentUser.email,
           role: currentUser.role,
-        });
-        await getTaskData(currentUser.displayName);
+        };
+        setDetails(userDetails);
+        return userDetails;
       }
     } catch (error) {
       console.error("Error getting user detail:", error);
     }
+    return undefined;
   };
   const navigate = useNavigate();
-  const updateTaskData = (noLoader?: boolean) => {
-    getTaskData(details?.name, noLoader);
-  };
+
   const getTaskData = async (name2: string | undefined, noLoader?: boolean) => {
     const taskCollection = collection(db, "tasks");
+    console.log("user", name2);
+
     !noLoader && setLoading(true);
     try {
       const querySnapshot = await getDocs(
@@ -74,8 +76,16 @@ const Dashboard = ({ type }: DashboardProps) => {
     }
   };
   const getData = async () => {
-    await getUserDetail();
-    // await getTaskData();
+    const userDetail = await getUserDetail();
+    if (userDetail) {
+      await getTaskData(currentUser.displayName);
+    }
+  };
+  const updateTaskData = async (noLoader?: boolean) => {
+    const userDetail = await getUserDetail();
+    if (userDetail) {
+      getTaskData(userDetail?.name, noLoader);
+    }
   };
   useEffect(() => {
     const interval = setInterval(() => {
