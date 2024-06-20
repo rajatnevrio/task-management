@@ -26,15 +26,17 @@ const SignIn: React.FC = () => {
       if (email && password) {
         await login(email, password);
         toast.success("Logged in successfully");
-      if(currentUser) { navigate("/")};
+        const loginTime = new Date().getTime();
+        localStorage.setItem("loginTime", loginTime.toString());
+        if (currentUser) {
+          navigate("/");
+        }
       }
     } catch (error) {
       console.log(error);
       if (error && (error as any).code === "auth/invalid-credential") {
         toast.error("Invalid Credentials");
-        setErrorMessage(
-          "Invalid Credentials"
-        );
+        setErrorMessage("Invalid Credentials");
       } else {
         toast.error("Failed to login");
         setErrorMessage("Failed to login");

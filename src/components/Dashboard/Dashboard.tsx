@@ -90,8 +90,8 @@ const Dashboard = ({ type }: DashboardProps) => {
   useEffect(() => {
     const interval = setInterval(() => {
       updateTaskData(true);
-      console.log("data updated every 20 seconds");
-    }, 20000);
+      console.log("data updated every 10 seconds");
+    }, 10000);
 
     return () => clearInterval(interval);
   }, []);

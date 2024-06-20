@@ -8,18 +8,56 @@ import {
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
   CheckCircleIcon,
-  DocumentIcon
+  DocumentIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: HomeIcon, count: "5", current: true, role: 'all' },
-  { name: "Intake Files", href: "/intake-files", icon: DocumentIcon, current: false, role: 'admin' },
-  { name: "Employees", href: "/employees", icon: UserGroupIcon, current: false, role: 'admin' },
-  { name: "Intake Team", href: "/intake-team", icon: UserPlusIcon, current: false, role: 'admin' },
-  { name: "Profile", href: "/profile", icon: UserCircleIcon, current: false, role: 'all' },
-  { name: "Completed Jobs", href: "/completed-jobs", icon: CheckCircleIcon, current: false, role: 'admin' },
+  {
+    name: "Dashboard",
+    href: "/",
+    icon: HomeIcon,
+    count: "5",
+    current: true,
+    role: "all",
+  },
+  {
+    name: "Intake Files",
+    href: "/intake-files",
+    icon: DocumentIcon,
+    current: false,
+    role: "admin",
+  },
+  {
+    name: "Employees",
+    href: "/employees",
+    icon: UserGroupIcon,
+    current: false,
+    role: "admin",
+  },
+  {
+    name: "Intake Team",
+    href: "/intake-team",
+    icon: UserPlusIcon,
+    current: false,
+    role: "admin",
+  },
+  {
+    name: "Profile",
+    href: "/profile",
+    icon: UserCircleIcon,
+    current: false,
+    role: "all",
+  },
+  {
+    name: "Completed Jobs",
+    href: "/completed-jobs",
+    icon: CheckCircleIcon,
+    current: false,
+    role: "admin",
+  },
   // {
   //   name: "Projects",
   //   href: "#",
@@ -50,16 +88,33 @@ function classNames(...classes: any) {
 export default function Sidebar() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
- const location = useLocation()
+  const location = useLocation();
+
+  useEffect(() => {
+    const checkSessionExpiry = () => {
+      const loginTimeStr = localStorage.getItem("loginTime");
+      if (loginTimeStr) {
+        const loginTime = parseInt(loginTimeStr, 10);
+        const currentTime = new Date().getTime();
+        const sessionDuration = currentTime - loginTime;
+        const sessionTimeout = 8 * 60 * 60 * 1000; // 8hrs in milliseconds
+        if (sessionDuration > sessionTimeout) {
+          handleLogout();
+        }
+      }
+    };
+    const interval = setInterval(checkSessionExpiry, 1000); 
+    return () => clearInterval(interval);
+  }, [navigate]);
   async function handleLogout() {
     try {
       await logout();
-      navigate('/signin');
+      localStorage.removeItem("loginTime");
+      navigate("/signin");
     } catch (error) {
-      console.error('Error during logout', error);
+      console.error("Error during logout", error);
     }
   }
-
   return (
     <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 h-[100vh]">
       <div className="flex h-16 shrink-0 items-center"></div>
@@ -67,24 +122,33 @@ export default function Sidebar() {
         <ul role="list" className="flex flex-1 flex-col gap-y-7">
           <li>
             <ul role="list" className="-mx-2 space-y-1">
-            {navigation
-                .filter(item => item.role === 'all' || (currentUser && currentUser.role === 'admin' && item.role === 'admin'))
-                .map((item)=> (
-                <li key={item.name}>
-                  <Link
-                    to={item.href}
-                    className={classNames(
-                      location.pathname === item.href
-                        ? 'bg-gray-800 text-white'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800',
-                      'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
-                    )}
-                  >
-                    <item.icon className="h-6 w-6 shrink-0" aria-hidden="true" />
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
+              {navigation
+                .filter(
+                  (item) =>
+                    item.role === "all" ||
+                    (currentUser &&
+                      currentUser.role === "admin" &&
+                      item.role === "admin")
+                )
+                .map((item) => (
+                  <li key={item.name}>
+                    <Link
+                      to={item.href}
+                      className={classNames(
+                        location.pathname === item.href
+                          ? "bg-gray-800 text-white"
+                          : "text-gray-400 hover:text-white hover:bg-gray-800",
+                        "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
+                      )}
+                    >
+                      <item.icon
+                        className="h-6 w-6 shrink-0"
+                        aria-hidden="true"
+                      />
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
             </ul>
           </li>
 
@@ -94,7 +158,10 @@ export default function Sidebar() {
               onClick={() => handleLogout()}
             >
               Logout
-              <ArrowRightOnRectangleIcon className="h-6 w-6 shrink-0" aria-hidden="true" />
+              <ArrowRightOnRectangleIcon
+                className="h-6 w-6 shrink-0"
+                aria-hidden="true"
+              />
             </button>
           </li>
         </ul>
