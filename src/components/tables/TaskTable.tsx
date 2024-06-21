@@ -103,10 +103,11 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const uniqueAssignees = Array.from(
     new Set(
       taskArray
-        .filter(
-          (task) =>
-            task.jobStatus !== "completed" && task.jobStatus !== "handover"
-        )
+      // filter out the dropdown to show only the employees with job status
+        // .filter(     
+        //   (task) =>
+        //     task.jobStatus !== "completed" && task.jobStatus !== "handover"
+        // )
         .map((task) => task.employeeAssigned)
     )
   );
