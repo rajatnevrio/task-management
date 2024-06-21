@@ -85,9 +85,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
   };
   const sortedTaskArray = filteredTasks
     .filter((task) => {
-      if (isAdminOrTaskCreator() && type === "completed_jobs") {
+      if (type === "completed_jobs") {
         return task.jobStatus === "completed" || task.jobStatus === "handover";
-      } else if (isAdminOrTaskCreator() && type !== "completed_jobs") {
+      } else if (type !== "completed_jobs") {
         return task.jobStatus !== "completed" && task.jobStatus !== "handover";
       } else {
         return true;
@@ -103,8 +103,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
   const uniqueAssignees = Array.from(
     new Set(
       taskArray
-      // filter out the dropdown to show only the employees with job status
-        // .filter(     
+        // filter out the dropdown to show only the employees with job status
+        // .filter(
         //   (task) =>
         //     task.jobStatus !== "completed" && task.jobStatus !== "handover"
         // )

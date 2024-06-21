@@ -56,7 +56,7 @@ const navigation = [
     href: "/completed-jobs",
     icon: CheckCircleIcon,
     current: false,
-    role: "admin",
+    role: "all",
   },
   // {
   //   name: "Projects",
