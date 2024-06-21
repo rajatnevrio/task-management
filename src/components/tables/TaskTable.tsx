@@ -93,6 +93,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
         return true;
       }
     })
+    //sort tasks based on the deadline
     .sort((a, b) => {
       const deadlineA = new Date(a.deadline);
       const deadlineB = new Date(b.deadline);
@@ -102,7 +103,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       const timeDifferenceB = Math.abs(
         deadlineB.getTime() - new Date().getTime()
       );
-      return timeDifferenceB - timeDifferenceA;
+      return timeDifferenceA - timeDifferenceB;
     });
 
   const uniqueAssignees = Array.from(
