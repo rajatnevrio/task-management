@@ -12,6 +12,7 @@ import ConfirmModal from "../modals/ConfirmModal";
 import { toast } from "react-toastify";
 import CountdownTimer from "../CountDownTimer/CountDownTimer";
 import { statusOptions } from "../modals/AddTaskDrawer";
+
 interface Task {
   [key: string]: string | number; // Adjust the type according to your task structure
 }
@@ -52,12 +53,23 @@ const TaskTable: React.FC<TaskTableProps> = ({
     id: "",
   });
   const [loading, setLoading] = useState<boolean>(false);
+  const [selectedAssignee, setSelectedAssignee] = useState<string>("");
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>(taskArray);
+
+  useEffect(() => {
+    if (selectedAssignee) {
+      setFilteredTasks(
+        taskArray.filter((task) => task.employeeAssigned === selectedAssignee)
+      );
+    } else {
+      setFilteredTasks(taskArray);
+    }
+  }, [selectedAssignee, taskArray]);
+
   const handleDelete = async (taskId: any) => {
     setLoading(true);
     try {
-      // Form a reference to the document using the unique ID
       const taskDocRef = doc(collection(db, "tasks"), taskId);
-      // Delete the document
       await deleteDoc(taskDocRef);
       setLoading(false);
       toast.success("Task Deleted Successfully");
@@ -68,29 +80,33 @@ const TaskTable: React.FC<TaskTableProps> = ({
       toast.error("Failed to delete task");
     }
   };
-
-  const sortedTaskArray = taskArray
+  const isAdminOrTaskCreator = () => {
+    return currentUser.role === "admin" || currentUser.role === "task-creator";
+  };
+  const sortedTaskArray = filteredTasks
     .filter((task) => {
-      if ((currentUser.role === "admin" || currentUser.role === "task-creator") && type === "completed_jobs") {
-        return task.jobStatus === "completed" || task.jobStatus === "handover" ; // Filter tasks with jobStatus "completed" only for admin users
-      } else if ((currentUser.role === "admin" || currentUser.role === "task-creator") && type !== "completed_jobs") {
+      if (isAdminOrTaskCreator() && type === "completed_jobs") {
+        return task.jobStatus === "completed" || task.jobStatus === "handover";
+      } else if (isAdminOrTaskCreator() && type !== "completed_jobs") {
         return task.jobStatus !== "completed" && task.jobStatus !== "handover";
       } else {
-        return true; // Allow all tasks for non-admin users
+        return true;
       }
     })
     .sort((a, b) => {
       const aTitleIdNumber = parseInt((a.titleId as string).slice(6), 10);
       const bTitleIdNumber = parseInt((b.titleId as string).slice(6), 10);
 
-      return bTitleIdNumber - aTitleIdNumber; // Sort based on titleId
+      return bTitleIdNumber - aTitleIdNumber;
     });
 
+  const uniqueAssignees = Array.from(
+    new Set(taskArray.map((task) => task.employeeAssigned))
+  );
   const tableRows = sortedTaskArray.map((element, index) => {
     const timestamp = element.createdAt;
     const date = new Date(Number(timestamp) * 1000);
 
-    // Format the date without seconds
     const options: Intl.DateTimeFormatOptions = {
       year: "numeric",
       month: "numeric",
@@ -101,9 +117,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
     };
     const isEditIconVisible = element.endDate
       ? new Date(element.endDate).getTime() + 60 * 30 * 1000 >
-          new Date().getTime() ||
-        currentUser.role === "admin" ||
-        currentUser.role === "task-creator"
+          new Date().getTime() || isAdminOrTaskCreator()
       : true;
     const formatDownloadLink = (link: fileType[] | string | number) => {
       return (
@@ -111,7 +125,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
           {(link as fileType[])?.map((file: fileType, index: number) => (
             <li key={index}>
               <a
-                href={file.url} // Assuming 'url' is the property containing the file URL
+                href={file.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="file-link hover:underline hover:text-blue-500"
@@ -129,9 +143,8 @@ const TaskTable: React.FC<TaskTableProps> = ({
     const dateObj = new Date(element.timer);
     const formattedDate = date.toLocaleString("en-US", options);
     const formatDateTime = (timestamp: string | number) => {
-      const date = new Date(timestamp.toString()); // Convert to string here
+      const date = new Date(timestamp.toString());
 
-      // Check if the date is valid before proceeding
       if (isNaN(date.getTime())) {
         return "-";
       }
@@ -166,12 +179,6 @@ const TaskTable: React.FC<TaskTableProps> = ({
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {element.numberOfSlides}
         </td>
-        {/* <td className="px-3 py-4 whitespace-nowrap border-r">
-          {formatDownloadLink(element.sourceFiles)}
-        </td>
-        <td className="px-3 py-4 whitespace-nowrap border-r">
-          {formatDownloadLink(element.submitFiles)}
-        </td> */}
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {formatDateTime(element.startDate)}
         </td>
@@ -187,12 +194,9 @@ const TaskTable: React.FC<TaskTableProps> = ({
         <td className="px-3 py-4 whitespace-nowrap border-r">
           {formattedDate}
         </td>
-        {/* Uncomment the line below if you want to display instructions */}
-        {/* <td className="px-3 py-4 whitespace-nowrap border-r">{element.instructions}</td> */}
         <td className="px-3 py-4 whitespace-nowrap border-r text-sm ">
           <div className="flex">
-            {(currentUser.role === "admin" ||
-              currentUser.role === "task-creator") && (
+            {isAdminOrTaskCreator() && (
               <TrashIcon
                 title="Delete task"
                 style={{
@@ -221,7 +225,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
                   setSidebarOpen((prevSidebarState) => ({
                     ...prevSidebarState,
                     isOpen: true,
-                    id: element?.docId?.toString(), // Ensure id is treated as a string
+                    id: element?.docId?.toString(),
                   }))
                 }
               />
@@ -237,6 +241,7 @@ const TaskTable: React.FC<TaskTableProps> = ({
       </tr>
     );
   });
+
   const data: Task[] = React.useMemo(() => taskArray, [taskArray]);
   const tableHeaders: string[] = [
     "TitleId",
@@ -245,20 +250,34 @@ const TaskTable: React.FC<TaskTableProps> = ({
     "P.P",
     "Job Status",
     "Pages",
-    // "Source Files",
-    // "Submitted Files",
     "Start Date",
     "End Date",
     "Deadline",
     "Timer",
     "Created on",
-    // "Instructions",
     "actions",
   ];
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
     useTable({ columns, data });
+
   return (
     <>
+      {isAdminOrTaskCreator() && (
+        <div className="flex justify-between items-center my-4">
+          <select
+            value={selectedAssignee}
+            onChange={(e) => setSelectedAssignee(e.target.value)}
+            className="p-2 border rounded"
+          >
+            <option value="">All Assignees</option>
+            {uniqueAssignees.map((assignee, index) => (
+              <option key={index} value={assignee}>
+                {assignee}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <table
         {...getTableProps()}
         className="w-full -my-2 shadow-md overflow-x-auto border mx-4 sm:m-8 lg:mx-1 overflowY-auto"
