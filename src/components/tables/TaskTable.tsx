@@ -94,10 +94,15 @@ const TaskTable: React.FC<TaskTableProps> = ({
       }
     })
     .sort((a, b) => {
-      const aTitleIdNumber = parseInt((a.titleId as string).slice(6), 10);
-      const bTitleIdNumber = parseInt((b.titleId as string).slice(6), 10);
-
-      return bTitleIdNumber - aTitleIdNumber;
+      const deadlineA = new Date(a.deadline);
+      const deadlineB = new Date(b.deadline);
+      const timeDifferenceA = Math.abs(
+        deadlineA.getTime() - new Date().getTime()
+      );
+      const timeDifferenceB = Math.abs(
+        deadlineB.getTime() - new Date().getTime()
+      );
+      return timeDifferenceB - timeDifferenceA;
     });
 
   const uniqueAssignees = Array.from(
