@@ -101,7 +101,14 @@ const TaskTable: React.FC<TaskTableProps> = ({
     });
 
   const uniqueAssignees = Array.from(
-    new Set(taskArray.map((task) => task.employeeAssigned))
+    new Set(
+      taskArray
+        .filter(
+          (task) =>
+            task.jobStatus !== "completed" && task.jobStatus !== "handover"
+        )
+        .map((task) => task.employeeAssigned)
+    )
   );
   const tableRows = sortedTaskArray.map((element, index) => {
     const timestamp = element.createdAt;
